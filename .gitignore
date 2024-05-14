@@ -32,4 +32,5 @@ plugins/banwords/lib/__pycache__
 !plugins/linkai
 !plugins/jina_sum
 !plugins/jina_sum/**/
+!plugins/transform_sharing
 client_config.json
