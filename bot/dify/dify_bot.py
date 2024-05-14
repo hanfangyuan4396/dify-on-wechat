@@ -19,7 +19,7 @@ class DifyBot(Bot):
 
     def reply(self, query, context: Context=None):
         # acquire reply content
-        if context.type == ContextType.TEXT or context.type == ContextType.IMAGE_CREATE:
+        if context.type in [ContextType.TEXT, ContextType.IMAGE_CREATE, ContextType.SHARING]:
             if context.type == ContextType.IMAGE_CREATE:
                 query = conf().get('image_create_prefix', ['画'])[0] + query
             logger.info("[DIFY] query={}".format(query))
@@ -110,9 +110,23 @@ class DifyBot(Bot):
         # }
         rsp_data = response.json()
         logger.debug("[DIFY] usage {}".format(rsp_data.get('metadata', {}).get('usage', 0)))
-        # TODO: 处理返回的图片文件
-        # {"answer": "![image](/files/tools/dbf9cd7c-2110-4383-9ba8-50d9fd1a4815.png?timestamp=1713970391&nonce=0d5badf2e39466042113a4ba9fd9bf83&sign=OVmdCxCEuEYwc9add3YNFFdUpn4VdFKgl84Cg54iLnU=)"}
-        reply = Reply(ReplyType.TEXT, rsp_data['answer'])
+        reply = Reply()
+        reply_text = rsp_data['answer']
+        if (reply_text.startswith("http://") or reply_text.startswith("https://")) and any(reply_text.endswith(ext) for ext in [".jpg", ".jpeg", ".png", ".gif", ".img"]):
+            # 如果是以 http:// 或 https:// 开头，且".jpg", ".jpeg", ".png", ".gif", ".img"结尾，则认为是图片 URL。
+                reply = Reply()
+                reply.type = ReplyType.IMAGE_URL
+                reply.content = reply_text
+        elif (reply_text.startswith("http://") or reply_text.startswith("https://")) and any(reply_text.endswith(ext) for ext in [".mp4"]):
+            # 如果是以 http:// 或 https:// 开头，且".mp4"结尾，则下载视频到tmp目录并发送给用户
+                reply = Reply()
+                reply.type = ReplyType.VIDEO_URL
+                reply.content = reply_text
+        else:
+            # 否则认为是普通文本
+                reply = Reply()
+                reply.type = ReplyType.TEXT
+                reply.content = reply_text
         # 设置dify conversation_id, 依靠dify管理上下文
         if session.get_conversation_id() == '':
             session.set_conversation_id(rsp_data['conversation_id'])

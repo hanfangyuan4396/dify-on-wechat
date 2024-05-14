@@ -170,6 +170,18 @@ available_setting = {
     "linkai_api_key": "",
     "linkai_app_code": "",
     "linkai_api_base": "https://api.link-ai.chat",  # linkAI服务地址，若国内无法访问或延迟较高可改为 https://api.link-ai.tech
+    # 插件开关
+    "use_jinasum": True,  # 是否使用JinaSum插件
+    "use_godcmd": True,  # 是否使用管理员指令插件
+    "use_finish": True,  # 是否使用未知指令兜底插件
+    "use_dungeon": True, # 是否使用文字冒险插件
+    "use_bdunit": True,  # 是否使用百度UNIT插件
+    "use_banwords": True, # 是否使用敏感词过滤插件
+    "use_hello": True,  # 是否使用入群自动迎新插件
+    "use_keyword": True,  # 是否使用关键词匹配过滤插件
+    "use_role": True,  # 是否使用角色扮演插件
+    "use_tool": True, # 是否使用工具插件,
+    "use_transformsharing": True,  # 是否使用TransformSharing插件
 }
 
 

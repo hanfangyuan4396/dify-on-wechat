@@ -139,7 +139,11 @@ class PluginManager:
 
     def activate_plugins(self):  # 生成新开启的插件实例
         failed_plugins = []
-        for name, plugincls in self.plugins.items():
+        for name, plugincls in self.plugins.items():            # 如果config中有配置 use_<plugin_name> 的则禁用插件
+            if conf().get("use_" + name.lower(), True) == False:
+                logger.warn("插件 %s 已被禁用" % (name))
+                self.disable_plugin(name)
+                continue
             if plugincls.enabled:
                 if name not in self.instances:
                     try:
