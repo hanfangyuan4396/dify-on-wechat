@@ -50,6 +50,7 @@ class TransformSharing(Plugin):
                 return
             if not self._check_url(content):
                 logger.debug(f"[TransformSharing] {content} is not a valid url, skip")
+                e_context.action = EventAction.BREAK_PASS
                 return
             logger.debug("[TransformSharing] on_handle_context. content: %s" % content)
             reply = Reply(ReplyType.TEXT, "🧐正在阅读您的分享，请稍候...")

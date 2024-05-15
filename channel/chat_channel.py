@@ -91,6 +91,19 @@ class ChatChannel(Channel):
                 logger.debug("[WX]self message skipped")
                 return None
 
+        # 处理群分享
+        if ctype == ContextType.SHARING and context.get("isgroup", False):
+            # 如果开启群分享白名单，则直接处理
+            group_name = context["msg"].other_user_nickname
+            group_name_sharing_white_list = config.get("group_name_sharing_white_list", [])
+            if ctype == ContextType.SHARING and any(
+                [
+                    "ALL_GROUP" in group_name_sharing_white_list,
+                    check_contain(group_name, group_name_sharing_white_list),
+                ]
+            ):
+                return context
+
         # 消息内容匹配过程，并处理content
         if ctype == ContextType.TEXT:
             if first_in and "」\n- - - - - - -" in content:  # 初次匹配 过滤引用消息

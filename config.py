@@ -182,6 +182,7 @@ available_setting = {
     "use_role": True,  # 是否使用角色扮演插件
     "use_tool": True, # 是否使用工具插件,
     "use_transformsharing": True,  # 是否使用TransformSharing插件
+    "group_name_sharing_white_list": ["ALL_GROUP"],  # 开启处理分享的群名称列表
 }
 
 
