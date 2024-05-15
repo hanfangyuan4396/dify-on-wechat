@@ -46,7 +46,7 @@ class TransformSharing(Plugin):
         try:
             context = e_context["context"]
             content = context.content
-            if context.type != ContextType.SHARING and context.type != ContextType.TEXT:
+            if context.type != ContextType.SHARING:
                 return
             if not self._check_url(content):
                 logger.debug(f"[TransformSharing] {content} is not a valid url, skip")
