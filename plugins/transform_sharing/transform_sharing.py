@@ -26,6 +26,7 @@ class TransformSharing(Plugin):
     black_url_list = [
         "https://support.weixin.qq.com", # 视频号视频
         "https://channels-aladin.wxqcloud.qq.com", # 视频号音乐
+        "https://mp.weixin.qq.com/mp/waerrpage" # 小程序
     ]
 
     def __init__(self):
