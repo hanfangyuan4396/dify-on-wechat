@@ -5,9 +5,11 @@
 .vs
 .wechaty/
 __pycache__/
+**/__pycache__/
 venv*
 *.pyc
 config.json
+**/config.json
 QR.png
 nohup.out
 tmp

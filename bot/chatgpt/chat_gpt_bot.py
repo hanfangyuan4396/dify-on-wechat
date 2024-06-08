@@ -1,6 +1,5 @@
 # encoding:utf-8
 
-import base64
 import time
 
 import openai
@@ -10,18 +9,16 @@ import requests
 from bot.bot import Bot
 from bot.chatgpt.chat_gpt_session import ChatGPTSession
 from bot.openai.open_ai_image import OpenAIImage
-from bot.openai.open_ai_vision import OpenAIVision
 from bot.session_manager import SessionManager
 from bridge.context import ContextType
 from bridge.reply import Reply, ReplyType
 from common.log import logger
 from common.token_bucket import TokenBucket
-from common import memory, utils, const
 from config import conf, load_config
 
 
 # OpenAI对话模型API (可用)
-class ChatGPTBot(Bot, OpenAIImage, OpenAIVision):
+class ChatGPTBot(Bot, OpenAIImage):
     def __init__(self):
         super().__init__()
         # set the default api_key
@@ -78,7 +75,7 @@ class ChatGPTBot(Bot, OpenAIImage, OpenAIVision):
             #     # reply in stream
             #     return self.reply_text_stream(query, new_query, session_id)
 
-            reply_content = self.reply_text(session_id, session, api_key, args=new_args)
+            reply_content = self.reply_text(session, api_key, args=new_args)
             logger.debug(
                 "[CHATGPT] new_query={}, session_id={}, reply_cont={}, completion_tokens={}".format(
                     session.messages,
@@ -98,7 +95,7 @@ class ChatGPTBot(Bot, OpenAIImage, OpenAIVision):
             return reply
 
         elif context.type == ContextType.IMAGE_CREATE:
-            ok, retstring = self.create_img(query, 0, context=context)
+            ok, retstring = self.create_img(query, 0)
             reply = None
             if ok:
                 reply = Reply(ReplyType.IMAGE_URL, retstring)
@@ -109,7 +106,7 @@ class ChatGPTBot(Bot, OpenAIImage, OpenAIVision):
             reply = Reply(ReplyType.ERROR, "Bot不支持处理{}类型的消息".format(context.type))
             return reply
 
-    def reply_text(self, session_id: str, session: ChatGPTSession, api_key=None, args=None, retry_count=0) -> dict:
+    def reply_text(self, session: ChatGPTSession, api_key=None, args=None, retry_count=0) -> dict:
         """
         call openai's ChatCompletion to get the answer
         :param session: a conversation session
@@ -123,58 +120,13 @@ class ChatGPTBot(Bot, OpenAIImage, OpenAIVision):
             # if api_key == None, the default openai.api_key will be used
             if args is None:
                 args = self.args
-            res = self.do_vision_completion_if_need(session_id, session.messages[-1]['content'])
-            if res:
-                return res
             response = openai.ChatCompletion.create(api_key=api_key, messages=session.messages, **args)
             # logger.debug("[CHATGPT] response={}".format(response))
             # logger.info("[ChatGPT] reply={}, total_tokens={}".format(response.choices[0]['message']['content'], response["usage"]["total_tokens"]))
-            content = response.choices[0]["message"]["content"]
-            # fastgpt工具调用格式处理
-            if isinstance(content, list):
-                # {
-                #     "id": "",
-                #     "model": "",
-                #     "usage": {},
-                #     "choices": [
-                #         {
-                #             "message": {
-                #                 "role": "assistant",
-                #                 "content": [
-                #                     {
-                #                         "type": "tool",
-                #                         "tools": [
-                #                             {
-                #                                 "id": "xx",
-                #                                 "toolName": "HTTP请求",
-                #                                 "toolAvatar": "xx",
-                #                                 "functionName": "xx",
-                #                                 "params": "{\"key1\":\"xx\",\"key2\":\"xxx"}",
-                #                                 "response": "xxx"
-                #                             }
-                #                         ]
-                #                     },
-                #                     {
-                #                         "type": "text",
-                #                         "text": {
-                #                             "content": "xxx"
-                #                         }
-                #                     }
-                #                 ]
-                #             },
-                #             "finish_reason": "stop",
-                #             "index": 0
-                #         }
-                #     ]
-                # }
-                for item in content:
-                    if item["type"] == "text":
-                        content = item["text"]["content"]
-                        break
             return {
                 "total_tokens": response["usage"]["total_tokens"],
                 "completion_tokens": response["usage"]["completion_tokens"],
-                "content": content,
+                "content": response.choices[0]["message"]["content"],
             }
         except Exception as e:
             need_retry = retry_count < 2
@@ -206,7 +158,7 @@ class ChatGPTBot(Bot, OpenAIImage, OpenAIVision):
 
             if need_retry:
                 logger.warn("[CHATGPT] 第{}次重试".format(retry_count + 1))
-                return self.reply_text(session_id, session, api_key, args, retry_count + 1)
+                return self.reply_text(session, api_key, args, retry_count + 1)
             else:
                 return result
 
@@ -219,24 +171,48 @@ class AzureChatGPTBot(ChatGPTBot):
         self.args["deployment_id"] = conf().get("azure_deployment_id")
 
     def create_img(self, query, retry_count=0, api_key=None):
-        api_version = "2022-08-03-preview"
-        url = "{}dalle/text-to-image?api-version={}".format(openai.api_base, api_version)
-        api_key = api_key or openai.api_key
-        headers = {"api-key": api_key, "Content-Type": "application/json"}
-        try:
-            body = {"caption": query, "resolution": conf().get("image_create_size", "256x256")}
-            submission = requests.post(url, headers=headers, json=body)
-            operation_location = submission.headers["Operation-Location"]
-            retry_after = submission.headers["Retry-after"]
-            status = ""
-            image_url = ""
-            while status != "Succeeded":
-                logger.info("waiting for image create..., " + status + ",retry after " + retry_after + " seconds")
-                time.sleep(int(retry_after))
-                response = requests.get(operation_location, headers=headers)
-                status = response.json()["status"]
-            image_url = response.json()["result"]["contentUrl"]
-            return True, image_url
-        except Exception as e:
-            logger.error("create image error: {}".format(e))
-            return False, "图片生成失败"
+        text_to_image_model = conf().get("text_to_image")
+        if text_to_image_model == "dall-e-2":
+            api_version = "2023-06-01-preview"
+            endpoint = conf().get("azure_openai_dalle_api_base","open_ai_api_base")
+            # 检查endpoint是否以/结尾
+            if not endpoint.endswith("/"):
+                endpoint = endpoint + "/"
+            url = "{}openai/images/generations:submit?api-version={}".format(endpoint, api_version)
+            api_key = conf().get("azure_openai_dalle_api_key","open_ai_api_key")
+            headers = {"api-key": api_key, "Content-Type": "application/json"}
+            try:
+                body = {"prompt": query, "size": conf().get("image_create_size", "256x256"),"n": 1}
+                submission = requests.post(url, headers=headers, json=body)
+                operation_location = submission.headers['operation-location']
+                status = ""
+                while (status != "succeeded"):
+                    if retry_count > 3:
+                        return False, "图片生成失败"
+                    response = requests.get(operation_location, headers=headers)
+                    status = response.json()['status']
+                    retry_count += 1
+                image_url = response.json()['result']['data'][0]['url']
+                return True, image_url
+            except Exception as e:
+                logger.error("create image error: {}".format(e))
+                return False, "图片生成失败"
+        elif text_to_image_model == "dall-e-3":
+            api_version = conf().get("azure_api_version", "2024-02-15-preview")
+            endpoint = conf().get("azure_openai_dalle_api_base","open_ai_api_base")
+            # 检查endpoint是否以/结尾
+            if not endpoint.endswith("/"):
+                endpoint = endpoint + "/"
+            url = "{}openai/deployments/{}/images/generations?api-version={}".format(endpoint, conf().get("azure_openai_dalle_deployment_id","text_to_image"),api_version)
+            api_key = conf().get("azure_openai_dalle_api_key","open_ai_api_key")
+            headers = {"api-key": api_key, "Content-Type": "application/json"}
+            try:
+                body = {"prompt": query, "size": conf().get("image_create_size", "1024x1024"), "quality": conf().get("dalle3_image_quality", "standard")}
+                submission = requests.post(url, headers=headers, json=body)
+                image_url = submission.json()['data'][0]['url']
+                return True, image_url
+            except Exception as e:
+                logger.error("create image error: {}".format(e))
+                return False, "图片生成失败"
+        else:
+            return False, "图片生成失败，未配置text_to_image参数"
