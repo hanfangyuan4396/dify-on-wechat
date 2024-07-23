@@ -290,8 +290,8 @@ class WechatChannel(ChatChannel):
                     # 自动接受好友申请
                     debug_msg = itchat.accept_friend(userName=context.content["UserName"], v4=context.content["Ticket"])
                     if "accept_friend_msg" in conf():
-                        group_exit_msg = conf().get("accept_friend_msg", "")
-                        itchat.send(group_exit_msg,toUserName=context.content["UserName"])
+                        accept_friend_msg = conf().get("accept_friend_msg", "")
+                        itchat.send(accept_friend_msg, toUserName=context.content["UserName"])
                     logger.debug("[WX] accept_friend return: {}".format(debug_msg))
                     logger.info("[WX] Accepted new friend, UserName={}, NickName={}".format(context.content["UserName"],
                                                                                             context.content[
