@@ -42,5 +42,8 @@ dingtalk_stream
 # zhipuai
 zhipuai>=2.0.1
 
+# webui
+gradio==4.37.2
+gradio_client==1.0.2
 # tongyi qwen new sdk
 dashscope
