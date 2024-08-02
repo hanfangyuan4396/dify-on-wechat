@@ -37,6 +37,8 @@ class ChatChannel(Channel):
     def _compose_context(self, ctype: ContextType, content, **kwargs):
         context = Context(ctype, content)
         context.kwargs = kwargs
+        if ctype == ContextType.ACCEPT_FRIEND:
+            return context
         # context首次传入时，origin_ctype是None,
         # 引入的起因是：当输入语音时，会嵌套生成两个context，第一步语音转文本，第二步通过文本生成文字回复。
         # origin_ctype用于第二步文本回复时，判断是否需要匹配前缀，如果是私聊的语音，就不需要匹配前缀
@@ -58,19 +60,19 @@ class ChatChannel(Channel):
                 group_name_white_list = config.get("group_name_white_list", [])
                 group_name_keyword_white_list = config.get("group_name_keyword_white_list", [])
                 if any(
-                    [
-                        group_name in group_name_white_list,
-                        "ALL_GROUP" in group_name_white_list,
-                        check_contain(group_name, group_name_keyword_white_list),
-                    ]
+                        [
+                            group_name in group_name_white_list,
+                            "ALL_GROUP" in group_name_white_list,
+                            check_contain(group_name, group_name_keyword_white_list),
+                        ]
                 ):
                     group_chat_in_one_session = conf().get("group_chat_in_one_session", [])
                     session_id = cmsg.actual_user_id
                     if any(
-                        [
-                            group_name in group_chat_in_one_session,
-                            "ALL_GROUP" in group_chat_in_one_session,
-                        ]
+                            [
+                                group_name in group_chat_in_one_session,
+                                "ALL_GROUP" in group_chat_in_one_session,
+                            ]
                     ):
                         session_id = group_id
                 else:
@@ -81,7 +83,8 @@ class ChatChannel(Channel):
             else:
                 context["session_id"] = cmsg.other_user_id
                 context["receiver"] = cmsg.other_user_id
-            e_context = PluginManager().emit_event(EventContext(Event.ON_RECEIVE_MESSAGE, {"channel": self, "context": context}))
+            e_context = PluginManager().emit_event(
+                EventContext(Event.ON_RECEIVE_MESSAGE, {"channel": self, "context": context}))
             context = e_context["context"]
             if e_context.is_pass() or context is None:
                 return context
@@ -155,10 +158,12 @@ class ChatChannel(Channel):
             else:
                 context.type = ContextType.TEXT
             context.content = content.strip()
-            if "desire_rtype" not in context and conf().get("always_reply_voice") and ReplyType.VOICE not in self.NOT_SUPPORT_REPLYTYPE:
+            if "desire_rtype" not in context and conf().get(
+                    "always_reply_voice") and ReplyType.VOICE not in self.NOT_SUPPORT_REPLYTYPE:
                 context["desire_rtype"] = ReplyType.VOICE
         elif context.type == ContextType.VOICE:
-            if "desire_rtype" not in context and conf().get("voice_reply_voice") and ReplyType.VOICE not in self.NOT_SUPPORT_REPLYTYPE:
+            if "desire_rtype" not in context and conf().get(
+                    "voice_reply_voice") and ReplyType.VOICE not in self.NOT_SUPPORT_REPLYTYPE:
                 context["desire_rtype"] = ReplyType.VOICE
         return context
 
@@ -223,6 +228,8 @@ class ChatChannel(Channel):
                     "path": context.content,
                     "msg": context.get("msg")
                 }
+            elif context.type == ContextType.ACCEPT_FRIEND:  # 好友申请，匹配字符串
+                reply = self._build_friend_request_reply(context)
             elif context.type == ContextType.SHARING:  # 分享信息，当前无默认逻辑
                 pass
             elif context.type == ContextType.FUNCTION or context.type == ContextType.FILE:  # 文件消息及函数调用等，当前无默认逻辑
@@ -256,13 +263,17 @@ class ChatChannel(Channel):
                     if context.get("isgroup", False):
                         if not context.get("no_need_at", False):
                             reply_text = "@" + context["msg"].actual_user_nickname + "\n" + reply_text.strip()
-                        reply_text = conf().get("group_chat_reply_prefix", "") + reply_text + conf().get("group_chat_reply_suffix", "")
+                        reply_text = conf().get("group_chat_reply_prefix", "") + reply_text + conf().get(
+                            "group_chat_reply_suffix", "")
                     else:
-                        reply_text = conf().get("single_chat_reply_prefix", "") + reply_text + conf().get("single_chat_reply_suffix", "")
+                        reply_text = conf().get("single_chat_reply_prefix", "") + reply_text + conf().get(
+                            "single_chat_reply_suffix", "")
                     reply.content = reply_text
                 elif reply.type == ReplyType.ERROR or reply.type == ReplyType.INFO:
                     reply.content = "[" + str(reply.type) + "]\n" + reply.content
                 elif reply.type == ReplyType.IMAGE_URL or reply.type == ReplyType.VOICE or reply.type == ReplyType.IMAGE or reply.type == ReplyType.FILE or reply.type == ReplyType.VIDEO or reply.type == ReplyType.VIDEO_URL:
+                    pass
+                elif reply.type == ReplyType.ACCEPT_FRIEND:
                     pass
                 else:
                     logger.error("[chat_channel] unknown reply type: {}".format(reply.type))
@@ -296,6 +307,18 @@ class ChatChannel(Channel):
                 time.sleep(3 + 3 * retry_cnt)
                 self._send(reply, context, retry_cnt + 1)
 
+    # 处理好友申请
+    def _build_friend_request_reply(self, context):
+        if isinstance(context.content, dict) and "Content" in context.content:
+            logger.info("friend request content: {}".format(context.content["Content"]))
+            if context.content["Content"] in conf().get("accept_friend_commands", []):
+                return Reply(type=ReplyType.ACCEPT_FRIEND, content=True)
+            else:
+                return Reply(type=ReplyType.ACCEPT_FRIEND, content=False)
+        else:
+            logger.error("Invalid context content: {}".format(context.content))
+            return None
+
     def _success_callback(self, session_id, **kwargs):  # 线程正常结束时的回调函数
         logger.debug("Worker return success, session_id = {}".format(session_id))
 
@@ -320,7 +343,7 @@ class ChatChannel(Channel):
         return func
 
     def produce(self, context: Context):
-        session_id = context["session_id"]
+        session_id = context.get("session_id", 0)
         with self.lock:
             if session_id not in self.sessions:
                 self.sessions[session_id] = [

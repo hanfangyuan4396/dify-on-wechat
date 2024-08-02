@@ -18,6 +18,7 @@ class Bridge(object):
             "text_to_voice": conf().get("text_to_voice", "google"),
             "translate": conf().get("translate", "baidu"),
         }
+
         # 这边取配置的模型
         bot_type = conf().get("bot_type")
         if bot_type:
@@ -38,8 +39,12 @@ class Bridge(object):
                 self.btype["chat"] = const.QWEN_DASHSCOPE
             if model_type and model_type.startswith("gemini"):
                 self.btype["chat"] = const.GEMINI
+            if model_type in [const.DIFY]:
+                self.btype["chat"] = const.DIFY
             if model_type in [const.ZHIPU_AI]:
                 self.btype["chat"] = const.ZHIPU_AI
+            if model_type in [const.COZE]:
+                self.btype["chat"] = const.COZE
             if model_type and model_type.startswith("claude-3"):
                 self.btype["chat"] = const.CLAUDEAPI
 
@@ -51,7 +56,7 @@ class Bridge(object):
 
             if model_type in ["abab6.5-chat"]:
                 self.btype["chat"] = const.MiniMax
-
+            
             if conf().get("use_linkai") and conf().get("linkai_api_key"):
                 self.btype["chat"] = const.LINKAI
                 if not conf().get("voice_to_text") or conf().get("voice_to_text") in ["openai"]:

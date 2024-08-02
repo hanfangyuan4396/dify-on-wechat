@@ -5,14 +5,15 @@ BAIDU = "baidu"  # 百度文心一言模型
 XUNFEI = "xunfei"
 CHATGPTONAZURE = "chatGPTOnAzure"
 LINKAI = "linkai"
+GEMINI = "gemini"
+DIFY = "dify"
+ZHIPU_AI = "glm-4"
+COZE = "coze"
 CLAUDEAI = "claude"  # 使用cookie的历史模型
-CLAUDEAPI= "claudeAPI"  # 通过Claude api调用模型
+CLAUDEAPI = "claudeAPI"  # 通过Claude api调用模型
 QWEN = "qwen"  # 旧版通义模型
 QWEN_DASHSCOPE = "dashscope"  # 通义新版sdk和api key
-
-
 GEMINI = "gemini"  # gemini-1.0-pro
-ZHIPU_AI = "glm-4"
 MOONSHOT = "moonshot"
 MiniMax = "minimax"
 
@@ -22,7 +23,6 @@ CLAUDE3 = "claude-3-opus-20240229"
 GPT35 = "gpt-3.5-turbo"
 GPT35_0125 = "gpt-3.5-turbo-0125"
 GPT35_1106 = "gpt-3.5-turbo-1106"
-
 GPT_4o = "gpt-4o"
 GPT4_TURBO = "gpt-4-turbo"
 GPT4_TURBO_PREVIEW = "gpt-4-turbo-preview"
@@ -30,7 +30,8 @@ GPT4_TURBO_04_09 = "gpt-4-turbo-2024-04-09"
 GPT4_TURBO_01_25 = "gpt-4-0125-preview"
 GPT4_TURBO_11_06 = "gpt-4-1106-preview"
 GPT4_VISION_PREVIEW = "gpt-4-vision-preview"
-
+GPT_4O = "gpt-4o"
+GPT_4O_MINI = "gpt-4o-mini"
 GPT4 = "gpt-4"
 GPT_4o_MINI = "gpt-4o-mini"
 GPT4_32k = "gpt-4-32k"
@@ -40,6 +41,7 @@ GPT4_32k_06_13 = "gpt-4-32k-0613"
 WHISPER_1 = "whisper-1"
 TTS_1 = "tts-1"
 TTS_1_HD = "tts-1-hd"
+
 
 WEN_XIN = "wenxin"
 WEN_XIN_4 = "wenxin-4"

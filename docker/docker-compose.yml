@@ -1,25 +1,30 @@
 version: '2.0'
 services:
-  chatgpt-on-wechat:
-    image: zhayujie/chatgpt-on-wechat
-    container_name: chatgpt-on-wechat
+  dify-on-wechat:
+    # 对镜像地址的说明 
+    # docker hub 仓库国内无法访问, 可以使用ACR阿里云容器仓库，但由于我使用的是免费个人版仓库不保证可用性
+
+    # 对tag的说明 
+    # tag为 master 表示是主分支的镜像，最新版本，功能不稳定
+    # tag为 latest 表示是最新的release镜像，相对稳定(个人没有精力全面测试)
+    # tag以arm64结尾的镜像为arm64架构镜像，其他为amd64架构镜像
+    
+    # image: hanfangyuan/dify-on-wechat:latest # docker hub
+    # image: hanfangyuan/dify-on-wechat:latest-arm64 # docker hub arm64
+    image: registry.cn-hangzhou.aliyuncs.com/hanfangyuan/dify-on-wechat:latest # acr
+    # image: registry.cn-hangzhou.aliyuncs.com/hanfangyuan/dify-on-wechat:latest-arm64 # acr arm64
+    restart: always
+    pull_policy: always
+    container_name: dify-on-wechat
     security_opt:
       - seccomp:unconfined
     environment:
-      TZ: 'Asia/Shanghai'
-      OPEN_AI_API_KEY: 'YOUR API KEY'
-      MODEL: 'gpt-3.5-turbo'
-      PROXY: ''
-      SINGLE_CHAT_PREFIX: '["bot", "@bot"]'
-      SINGLE_CHAT_REPLY_PREFIX: '"[bot] "'
+      DIFY_API_BASE: 'https://api.dify.ai/v1'
+      DIFY_API_KEY: 'app-xx'
+      DIFY_APP_TYPE: 'chatbot'
+      MODEL: 'dify'
+      SINGLE_CHAT_PREFIX: '[""]'
+      SINGLE_CHAT_REPLY_PREFIX: '""'
       GROUP_CHAT_PREFIX: '["@bot"]'
-      GROUP_NAME_WHITE_LIST: '["ChatGPT测试群", "ChatGPT测试群2"]'
-      IMAGE_CREATE_PREFIX: '["画", "看", "找"]'
-      CONVERSATION_MAX_TOKENS: 1000
-      SPEECH_RECOGNITION: 'False'
-      CHARACTER_DESC: '你是ChatGPT, 一个由OpenAI训练的大型语言模型, 你旨在回答并解决人们的任何问题，并且可以使用多种语言与人交流。'
-      EXPIRES_IN_SECONDS: 3600
-      USE_GLOBAL_PLUGIN_CONFIG: 'True'
-      USE_LINKAI: 'False'
-      LINKAI_API_KEY: ''
-      LINKAI_APP_CODE: ''
+      GROUP_NAME_WHITE_LIST: '["ALL_GROUP"]'
+      TZ: 'Asia/Shanghai'

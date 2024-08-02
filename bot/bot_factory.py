@@ -56,9 +56,17 @@ def create_bot(bot_type):
         from bot.gemini.google_gemini_bot import GoogleGeminiBot
         return GoogleGeminiBot()
 
+    elif bot_type == const.DIFY:
+        from bot.dify.dify_bot import DifyBot
+        return DifyBot()
+
     elif bot_type == const.ZHIPU_AI:
         from bot.zhipuai.zhipuai_bot import ZHIPUAIBot
         return ZHIPUAIBot()
+
+    elif bot_type == const.COZE:
+        from bot.bytedance.bytedance_coze_bot import ByteDanceCozeBot
+        return ByteDanceCozeBot()
 
     elif bot_type == const.MOONSHOT:
         from bot.moonshot.moonshot_bot import MoonshotBot
