@@ -28,3 +28,9 @@ services:
       GROUP_CHAT_PREFIX: '["@bot"]'
       GROUP_NAME_WHITE_LIST: '["ALL_GROUP"]'
       TZ: 'Asia/Shanghai'
+      DIFY_ON_WECHAT_EXEC: 'python web_ui.py'
+      WEB_UI_PORT: '8080'
+      WEB_UI_USERNAME: 'admin'
+      WEB_UI_PASSWORD: 'password'
+    ports:
+      - "8080:8080"
