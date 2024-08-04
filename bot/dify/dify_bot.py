@@ -87,7 +87,7 @@ class DifyBot(Bot):
             query=payload['query'],
             user=payload['user'],
             response_mode=payload['response_mode'],
-            conversation_id=payload['conversation_id']
+            conversation_id=payload['conversation_id'] if payload['conversation_id'] else None
         )
         
         if response.status_code != 200:
@@ -157,6 +157,17 @@ class DifyBot(Bot):
             error_info = f"[DIFY] response text={response.text} status_code={response.status_code}"
             logger.warn(error_info)
             return None, error_info
+
+        rsp_data = response.json()
+        if 'data' not in rsp_data or 'outputs' not in rsp_data['data'] or 'text' not in rsp_data['data']['outputs']:
+            error_info = f"[DIFY] Unexpected response format: {rsp_data}"
+            logger.warn(error_info)
+            return None, error_info
+        
+        if response.status_code != 200:
+            error_info = f"[DIFY] response text={response.text} status_code={response.status_code}"
+            logger.warn(error_info)
+            return None, error_info
         
         rsp_data = response.json()
         reply = Reply(ReplyType.TEXT, rsp_data['data']['outputs']['text'])
@@ -169,7 +180,7 @@ class DifyBot(Bot):
         return self._get_file_base_url() + url
 
     def _get_file_base_url(self) -> str:
-        return self._get_api_base_url().replace("/v1", "")
+        return self.api_base.replace("/v1", "")
 
     def _get_workflow_payload(self, query, session: DifySession):
         return {
