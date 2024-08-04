@@ -1,10 +1,8 @@
 # encoding:utf-8
-import json
 import threading
 
-import requests
-
 from bot.bot import Bot
+from bot.dify.dify_client import DifyClient, ChatClient
 from bot.dify.dify_session import DifySession, DifySessionManager
 from bridge.context import ContextType, Context
 from bridge.reply import Reply, ReplyType
@@ -16,6 +14,10 @@ class DifyBot(Bot):
     def __init__(self):
         super().__init__()
         self.sessions = DifySessionManager(DifySession, model=conf().get("model", const.DIFY))
+        self.api_key = conf().get('dify_api_key', '')
+        self.api_base = conf().get("dify_api_base", "https://api.dify.ai/v1")
+        self.dify_client = DifyClient(self.api_key, self.api_base)
+        self.chat_client = ChatClient(self.api_key, self.api_base)
 
     def reply(self, query, context: Context=None):
         # acquire reply content
@@ -46,14 +48,6 @@ class DifyBot(Bot):
         else:
             reply = Reply(ReplyType.ERROR, "Bot不支持处理{}类型的消息".format(context.type))
             return reply
-
-    def _get_api_base_url(self) -> str:
-        return conf().get("dify_api_base", "https://api.dify.ai/v1")
-
-    def _get_headers(self):
-        return {
-            'Authorization': f"Bearer {conf().get('dify_api_key', '')}"
-        }
 
     def _get_payload(self, query, session: DifySession, response_mode):
         return {
