@@ -2,6 +2,8 @@
 import threading
 import json
 
+import requests
+
 from bot.bot import Bot
 from bot.dify.dify_client import DifyClient, ChatClient
 from bot.dify.dify_session import DifySession, DifySessionManager
