@@ -5,7 +5,7 @@ import json
 import requests
 
 from bot.bot import Bot
-from bot.dify.dify_client import DifyClient, ChatClient
+from lib.dify.dify_client import DifyClient, ChatClient
 from bot.dify.dify_session import DifySession, DifySessionManager
 from bridge.context import ContextType, Context
 from bridge.reply import Reply, ReplyType
@@ -17,10 +17,6 @@ class DifyBot(Bot):
     def __init__(self):
         super().__init__()
         self.sessions = DifySessionManager(DifySession, model=conf().get("model", const.DIFY))
-        self.api_key = conf().get('dify_api_key', '')
-        self.api_base = conf().get("dify_api_base", "https://api.dify.ai/v1")
-        self.dify_client = DifyClient(self.api_key, self.api_base)
-        self.chat_client = ChatClient(self.api_key, self.api_base)
 
     def reply(self, query, context: Context=None):
         # acquire reply content
@@ -80,9 +76,12 @@ class DifyBot(Bot):
             return None, error_info
 
     def _handle_chatbot(self, query: str, session: DifySession):
+        api_key = conf().get('dify_api_key', '')
+        api_base = conf().get("dify_api_base", "https://api.dify.ai/v1")
+        chat_client = ChatClient(api_key, api_base)
         response_mode = 'blocking'
         payload = self._get_payload(query, session, response_mode)
-        response = self.chat_client.create_chat_message(
+        response = chat_client.create_chat_message(
             inputs=payload['inputs'],
             query=payload['query'],
             user=payload['user'],
@@ -95,20 +94,38 @@ class DifyBot(Bot):
             logger.warn(error_info)
             return None, error_info
 
+        # response: 
+        # {
+        #     "event": "message",
+        #     "message_id": "9da23599-e713-473b-982c-4328d4f5c78a",
+        #     "conversation_id": "45701982-8118-4bc5-8e9b-64562b4555f2",
+        #     "mode": "chat",
+        #     "answer": "xxx",
+        #     "metadata": {
+        #         "usage": {
+        #         },
+        #         "retriever_resources": []
+        #     },
+        #     "created_at": 1705407629
+        # }
         rsp_data = response.json()
         logger.debug("[DIFY] usage {}".format(rsp_data.get('metadata', {}).get('usage', 0)))
-        
+        # TODO: 处理返回的图片文件
+        # {"answer": "![image](/files/tools/dbf9cd7c-2110-4383-9ba8-50d9fd1a4815.png?timestamp=1713970391&nonce=0d5badf2e39466042113a4ba9fd9bf83&sign=OVmdCxCEuEYwc9add3YNFFdUpn4VdFKgl84Cg54iLnU=)"}
         reply = Reply(ReplyType.TEXT, rsp_data['answer'])
-        
+        # 设置dify conversation_id, 依靠dify管理上下文
         if session.get_conversation_id() == '':
             session.set_conversation_id(rsp_data['conversation_id'])
         
         return reply, None
 
     def _handle_agent(self, query: str, session: DifySession, context: Context):
+        api_key = conf().get('dify_api_key', '')
+        api_base = conf().get("dify_api_base", "https://api.dify.ai/v1")
+        chat_client = ChatClient(api_key, api_base)
         response_mode = 'streaming'
         payload = self._get_payload(query, session, response_mode)
-        response = self.chat_client.create_chat_message(
+        response = chat_client.create_chat_message(
             inputs=payload['inputs'],
             query=payload['query'],
             user=payload['user'],
@@ -120,7 +137,11 @@ class DifyBot(Bot):
             error_info = f"[DIFY] response text={response.text} status_code={response.status_code}"
             logger.warn(error_info)
             return None, error_info
-
+        # response:
+        # data: {"event": "agent_thought", "id": "8dcf3648-fbad-407a-85dd-73a6f43aeb9f", "task_id": "9cf1ddd7-f94b-459b-b942-b77b26c59e9b", "message_id": "1fb10045-55fd-4040-99e6-d048d07cbad3", "position": 1, "thought": "", "observation": "", "tool": "", "tool_input": "", "created_at": 1705639511, "message_files": [], "conversation_id": "c216c595-2d89-438c-b33c-aae5ddddd142"}
+        # data: {"event": "agent_thought", "id": "8dcf3648-fbad-407a-85dd-73a6f43aeb9f", "task_id": "9cf1ddd7-f94b-459b-b942-b77b26c59e9b", "message_id": "1fb10045-55fd-4040-99e6-d048d07cbad3", "position": 1, "thought": "", "observation": "", "tool": "dalle3", "tool_input": "{\"dalle3\": {\"prompt\": \"cute Japanese anime girl with white hair, blue eyes, bunny girl suit\"}}", "created_at": 1705639511, "message_files": [], "conversation_id": "c216c595-2d89-438c-b33c-aae5ddddd142"}
+        # data: {"event": "agent_message", "id": "1fb10045-55fd-4040-99e6-d048d07cbad3", "task_id": "9cf1ddd7-f94b-459b-b942-b77b26c59e9b", "message_id": "1fb10045-55fd-4040-99e6-d048d07cbad3", "answer": "I have created an image of a cute Japanese", "created_at": 1705639511, "conversation_id": "c216c595-2d89-438c-b33c-aae5ddddd142"}
+        # data: {"event": "message_end", "task_id": "9cf1ddd7-f94b-459b-b942-b77b26c59e9b", "id": "1fb10045-55fd-4040-99e6-d048d07cbad3", "message_id": "1fb10045-55fd-4040-99e6-d048d07cbad3", "conversation_id": "c216c595-2d89-438c-b33c-aae5ddddd142", "metadata": {"usage": {"prompt_tokens": 305, "prompt_unit_price": "0.001", "prompt_price_unit": "0.001", "prompt_price": "0.0003050", "completion_tokens": 97, "completion_unit_price": "0.002", "completion_price_unit": "0.001", "completion_price": "0.0001940", "total_tokens": 184, "total_price": "0.0002290", "currency": "USD", "latency": 1.771092874929309}}}
         msgs, conversation_id = self._handle_sse_response(response)
         channel = context.get("channel")
         # TODO: 适配除微信以外的其他channel
@@ -151,25 +172,39 @@ class DifyBot(Bot):
 
     def _handle_workflow(self, query: str, session: DifySession):
         payload = self._get_workflow_payload(query, session)
-        response = self.dify_client._send_request("POST", "/workflows/run", json=payload)
-        
+        api_key = conf().get('dify_api_key', '')
+        api_base = conf().get("dify_api_base", "https://api.dify.ai/v1")
+        dify_client = DifyClient(api_key, api_base)
+        response = dify_client._send_request("POST", "/workflows/run", json=payload)
         if response.status_code != 200:
             error_info = f"[DIFY] response text={response.text} status_code={response.status_code}"
             logger.warn(error_info)
             return None, error_info
+
+        #  {
+        #      "log_id": "djflajgkldjgd",
+        #      "task_id": "9da23599-e713-473b-982c-4328d4f5c78a",
+        #      "data": {
+        #          "id": "fdlsjfjejkghjda",
+        #          "workflow_id": "fldjaslkfjlsda",
+        #          "status": "succeeded",
+        #          "outputs": {
+        #          "text": "Nice to meet you."
+        #          },
+        #          "error": null,
+        #          "elapsed_time": 0.875,
+        #          "total_tokens": 3562,
+        #          "total_steps": 8,
+        #          "created_at": 1705407629,
+        #          "finished_at": 1727807631
+        #      }
+        #  }
 
         rsp_data = response.json()
         if 'data' not in rsp_data or 'outputs' not in rsp_data['data'] or 'text' not in rsp_data['data']['outputs']:
             error_info = f"[DIFY] Unexpected response format: {rsp_data}"
             logger.warn(error_info)
             return None, error_info
-        
-        if response.status_code != 200:
-            error_info = f"[DIFY] response text={response.text} status_code={response.status_code}"
-            logger.warn(error_info)
-            return None, error_info
-        
-        rsp_data = response.json()
         reply = Reply(ReplyType.TEXT, rsp_data['data']['outputs']['text'])
         return reply, None
 
