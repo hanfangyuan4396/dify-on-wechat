@@ -7,12 +7,12 @@ services:
     # 对tag的说明 
     # tag为 master 表示是主分支的镜像，最新版本，功能不稳定
     # tag为 latest 表示是最新的release镜像，相对稳定(个人没有精力全面测试)
-    # tag以arm64结尾的镜像为arm64架构镜像，其他为amd64架构镜像
+    # tag为 arm64  表示镜像为arm64架构镜像，其他为amd64架构镜像
     
     # image: hanfangyuan/dify-on-wechat:latest # docker hub
-    # image: hanfangyuan/dify-on-wechat:latest-arm64 # docker hub arm64
+    # image: hanfangyuan/dify-on-wechat:arm64  # docker hub arm64
     image: registry.cn-hangzhou.aliyuncs.com/hanfangyuan/dify-on-wechat:latest # acr
-    # image: registry.cn-hangzhou.aliyuncs.com/hanfangyuan/dify-on-wechat:latest-arm64 # acr arm64
+    # image: registry.cn-hangzhou.aliyuncs.com/hanfangyuan/dify-on-wechat:arm64 # acr arm64
     restart: always
     pull_policy: always
     container_name: dify-on-wechat
@@ -21,10 +21,21 @@ services:
     environment:
       DIFY_API_BASE: 'https://api.dify.ai/v1'
       DIFY_API_KEY: 'app-xx'
-      DIFY_APP_TYPE: 'chatbot'
+      DIFY_APP_TYPE: 'chatbot'                    # dify助手类型 chatbot(对应聊天助手)/agent(对应Agent)/workflow(对应工作流)，默认为chatbot
+      # DIFY_CONVERSATION_MAX_MESSAGES: '5'       # dify目前不支持设置历史消息长度，暂时使用超过最大消息数清空会话的策略，缺点是没有滑动窗口，会突然丢失历史消息，当设置的值小于等于0，则不限制历史消息长度
+      EXPIRES_IN_SECONDS: '3600'                  # dify会话过期时间，单位秒，默认3600秒
       MODEL: 'dify'
-      SINGLE_CHAT_PREFIX: '[""]'
-      SINGLE_CHAT_REPLY_PREFIX: '""'
+      SINGLE_CHAT_PREFIX: '[""]'                  # 私聊前缀，配置示例 '["bot", "ai"]'
+      SINGLE_CHAT_REPLY_PREFIX: '""'              # 单聊回复前缀，配置示例 '"bot"' 只支持单个字符串，请勿配置成列表形式
       GROUP_CHAT_PREFIX: '["@bot"]'
       GROUP_NAME_WHITE_LIST: '["ALL_GROUP"]'
       TZ: 'Asia/Shanghai'
+      # web_ui 相关配置，只支持wx channel_tpye生效，默认不开启，取消注释下方配置可开启web_ui功能
+      # DIFY_ON_WECHAT_EXEC: 'python web_ui.py'
+      # WEB_UI_PORT: '7860'
+      # WEB_UI_USERNAME: 'dow'                    
+      # WEB_UI_PASSWORD: 'dify-on-wechat'         # 务必保证修改默认的用户名和密码
+      # 图片理解功能
+      # IMAGE_RECOGNITION: 'false'                # 是否开启图片理解功能，默认为false
+    ports:
+      - "7860:7860"

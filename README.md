@@ -31,6 +31,14 @@ Dify接入微信生态的**详细教程**请查看文章 [**手摸手教你把 D
 - [ ] **钉钉** 待测试
 - [ ] **飞书** 待测试
 
+# 交流群
+
+
+|<img width="240" src="./docs/images/wechat.jpg">|<img width="240" src="./docs/images/supportme.jpg">|
+|:-:|:-:|
+|添加我的微信拉你进交流群|开源不易，感谢打赏🎉|
+
+
 # 最新功能
 ## 1. 支持企业微信个人号（仅支持windows系统）
 ![wework](./docs/images/wework.jpg)
@@ -168,6 +176,8 @@ python3 app.py                                    # windows环境下该命令通
 
 
 # 更新日志
+- 2024/08/04 支持dify图片识别功能
+- 2024/08/03 微信支持通过web ui扫码登录或异常重启，已适配docker容器
 - 2024/08/01 同步上游chatgpt on wechat最新功能，docker镜像地址支持阿里云容器仓库ACR
 - 2024/04/30 支持windows环境下企业微信个人号
 - 2024/04/24 集成JinaSum插件，修复总结微信公众号文章，修复dify usage key error, 修复dify私有部署的图片url错误
@@ -177,13 +187,6 @@ python3 app.py                                    # windows环境下该命令通
 - 2024/04/04 支持docker部署
 - 2024/03/31 支持coze api(内测版)
 - 2024/03/29 支持dify基础的对话工作流，由于dify官网还未上线工作流，需要自行部署测试 [0.6.0-preview-workflow.1](https://github.com/langgenius/dify/releases/tag/0.6.0-preview-workflow.1)。
-# Dify on WeChat 交流群
-
-添加我的微信拉你进群(之前的企业微信好友达到上限了，无法验证通过了，麻烦未通过好友的重新添加下面的个人微信吧)
-
-<img width="240" src="./docs/images/image3.jpg">
-
-
 
 # 快速开始
 

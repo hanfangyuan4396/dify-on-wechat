@@ -35,3 +35,11 @@ plugins/banwords/lib/__pycache__
 client_config.json
 # qrcode
 wx_qrcode.png
+
+# auto coder
+.auto-coder
+actions
+output.txt
+
+# test bot
+test_dify.py

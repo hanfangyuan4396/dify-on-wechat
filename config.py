@@ -15,6 +15,8 @@ available_setting = {
     "web_ui_port": 7860,
     "web_ui_username": "dow",
     "web_ui_password": "dify-on-wechat",
+    # 错误回复消息
+    "error_reply": "我暂时遇到了一些问题，请您稍后重试~",
     # openai api配置
     "open_ai_api_key": "",  # openai api key
     # openai apibase，当use_azure_chatgpt为true时，需要设置对应的api base
@@ -80,6 +82,8 @@ available_setting = {
     "xunfei_app_id": "",  # 讯飞应用ID
     "xunfei_api_key": "",  # 讯飞 API key
     "xunfei_api_secret": "",  # 讯飞 API secret
+    "xunfei_domain": "",  # 讯飞模型对应的domain参数，Spark4.0 Ultra为 4.0Ultra，其他模型详见: https://www.xfyun.cn/doc/spark/Web.html
+    "xunfei_spark_url": "",  # 讯飞模型对应的请求地址，Spark4.0 Ultra为 wss://spark-api.xf-yun.com/v4.0/chat，其他模型参考详见: https://www.xfyun.cn/doc/spark/Web.html
     # claude 配置
     "claude_api_cookie": "",
     "claude_uuid": "",
@@ -99,7 +103,7 @@ available_setting = {
     "dify_api_base": "https://api.dify.ai/v1",
     "dify_api_key": "app-xxx",
     "dify_app_type": "chatbot", # dify助手类型 chatbot(对应聊天助手)/agent(对应Agent)/workflow(对应工作流)，默认为chatbot
-    "dify_convsersation_max_messages": 5, # dify目前不支持设置历史消息长度，暂时使用超过最大消息数清空会话的策略，缺点是没有滑动窗口，会突然丢失历史消息
+    "dify_conversation_max_messages": 5, # dify目前不支持设置历史消息长度，暂时使用超过最大消息数清空会话的策略，缺点是没有滑动窗口，会突然丢失历史消息，当设置的值小于等于0，则不限制历史消息长度
     # coze配置
     "coze_api_base": "https://api.coze.cn/open_api/v2",
     "coze_api_key": "xxx",
