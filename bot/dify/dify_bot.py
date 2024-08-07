@@ -116,7 +116,7 @@ class DifyBot(Bot):
         # }
         rsp_data = response.json()
         logger.debug("[DIFY] usage {}".format(rsp_data.get('metadata', {}).get('usage', 0)))
-        # TODO: 处理返回的图片文件
+        # TODO: 处理返回的图片与文件
         # {"answer": "![image](/files/tools/dbf9cd7c-2110-4383-9ba8-50d9fd1a4815.png?timestamp=1713970391&nonce=0d5badf2e39466042113a4ba9fd9bf83&sign=OVmdCxCEuEYwc9add3YNFFdUpn4VdFKgl84Cg54iLnU=)"}
         reply = Reply(ReplyType.TEXT, rsp_data['answer'])
         # 设置dify conversation_id, 依靠dify管理上下文
