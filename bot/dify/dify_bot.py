@@ -14,6 +14,7 @@ from bridge.context import ContextType, Context
 from bridge.reply import Reply, ReplyType
 from common.log import logger
 from common import const, memory
+from common.utils import parse_markdown_text
 from config import conf
 
 class DifyBot(Bot):
@@ -126,10 +127,10 @@ class DifyBot(Bot):
             if item['type'] == 'text':
                 replies.append(Reply(ReplyType.TEXT, item['content']))
             elif item['type'] == 'image':
-                image_url = self._process_url(item['content'])
+                image_url = self._fill_file_base_url(item['content'])
                 replies.append(Reply(ReplyType.IMAGE_URL, image_url))
             elif item['type'] == 'file':
-                file_url = self._process_url(item['content'])
+                file_url = self._fill_file_base_url(item['content'])
                 file_path = self._download_file(file_url)
                 if file_path:
                     replies.append(Reply(ReplyType.FILE, file_path))
@@ -139,11 +140,6 @@ class DifyBot(Bot):
             session.set_conversation_id(rsp_data['conversation_id'])
         
         return replies, None
-
-    def _process_url(self, url):
-        if not url.startswith(('http://', 'https://')):
-            return self._fill_file_base_url(url)
-        return url
 
     def _download_file(self, url):
         try:
