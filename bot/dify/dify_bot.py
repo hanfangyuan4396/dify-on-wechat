@@ -122,24 +122,48 @@ class DifyBot(Bot):
         parsed_content = parse_markdown_text(answer)
         
         # {"answer": "![image](/files/tools/dbf9cd7c-2110-4383-9ba8-50d9fd1a4815.png?timestamp=1713970391&nonce=0d5badf2e39466042113a4ba9fd9bf83&sign=OVmdCxCEuEYwc9add3YNFFdUpn4VdFKgl84Cg54iLnU=)"}
-        replies = []
-        for item in parsed_content:
+        channel = context.get("channel")
+        is_group = context.get("isgroup", False)
+        
+        for item in parsed_content[:-1]:
+            reply = None
             if item['type'] == 'text':
-                replies.append(Reply(ReplyType.TEXT, item['content']))
+                content = item['content']
+                if is_group:
+                    at_prefix = "@" + context["msg"].actual_user_nickname + "\n"
+                    content = at_prefix + content
+                reply = Reply(ReplyType.TEXT, content)
             elif item['type'] == 'image':
                 image_url = self._fill_file_base_url(item['content'])
-                replies.append(Reply(ReplyType.IMAGE_URL, image_url))
+                reply = Reply(ReplyType.IMAGE_URL, image_url)
             elif item['type'] == 'file':
                 file_url = self._fill_file_base_url(item['content'])
                 file_path = self._download_file(file_url)
                 if file_path:
-                    replies.append(Reply(ReplyType.FILE, file_path))
+                    reply = Reply(ReplyType.FILE, file_path)
+            
+            if reply:
+                thread = threading.Thread(target=channel.send, args=(reply, context))
+                thread.start()
+
+        final_item = parsed_content[-1]
+        final_reply = None
+        if final_item['type'] == 'text':
+            final_reply = Reply(ReplyType.TEXT, final_item['content'])
+        elif final_item['type'] == 'image':
+            image_url = self._fill_file_base_url(final_item['content'])
+            final_reply = Reply(ReplyType.IMAGE_URL, image_url)
+        elif final_item['type'] == 'file':
+            file_url = self._fill_file_base_url(final_item['content'])
+            file_path = self._download_file(file_url)
+            if file_path:
+                final_reply = Reply(ReplyType.FILE, file_path)
 
         # 设置dify conversation_id, 依靠dify管理上下文
         if session.get_conversation_id() == '':
             session.set_conversation_id(rsp_data['conversation_id'])
         
-        return replies, None
+        return final_reply, None
 
     def _download_file(self, url):
         try:
