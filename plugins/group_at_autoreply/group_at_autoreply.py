@@ -26,68 +26,77 @@ class GroupAtAutoreply(Plugin):
             logger.error(f"[GroupAtAutoreply]初始化异常：{e}")
             raise "[GroupAtAutoreply] init failed, ignore "
 
+    def _update_config(self, username, enabled, reply_text):
+        new_config = {
+            "enabled": enabled,
+            "reply_text": reply_text
+        }
+        self.config[username] = new_config
+        self.save_config(self.config)
+
     # 收到消息的时候，直接判断是否需要自动回复，需要的话，直接准备好，放在 context
     def on_receive_message(self, e_context: EventContext):
         if self.config is None:
             return
 
         context = e_context["context"]
-        if context.type != ContextType.TEXT or not context.get("isgroup", False):
+        if context.type != ContextType.TEXT:
             return
 
-        autoreply_members = []
-        if isinstance(context["msg"].at_list, list):
-            for at in context["msg"].at_list:
-                if at in self.config:
-                    at_config = self.config[at]
-                    if at_config["enabled"]:
-                        autoreply_members.append(at)
+        if context.get("isgroup", False):
+            # 群聊消息，检测是否触发了自动回复
+            autoreply_members = []
+            if isinstance(context["msg"].at_list, list):
+                for at in context["msg"].at_list:
+                    if at in self.config:
+                        at_config = self.config[at]
+                        if at_config["enabled"]:
+                            autoreply_members.append(at)
 
-        if len(autoreply_members) > 0:
-            context["autoreply_members"] = autoreply_members
-            e_context.action = EventAction.BREAK_PASS
+            if len(autoreply_members) > 0:
+                context["autoreply_members"] = autoreply_members
+                e_context.action = EventAction.BREAK_PASS
+        elif str(context.content).startswith("#群自动回复"):
+            # 私聊消息，且是设置自动回复的
+            lines = str(context.content).split("\n")[1:]
+            enabled = None  # 开关
+            reply_text = None  # 回复内容
 
-    def include_member(self, member: str):
-        if member not in self.config:
-            return False
-        return self.config[member]["enabled"]
+            for line in lines:
+                line = line.strip()
+                kwarg = line.split(":")
+                if len(kwarg) <= 1:
+                    kwarg = line.split("：")
+                if len(kwarg) <= 1:
+                    continue
+                key = kwarg[0].strip()
+                value = kwarg[1].strip()
+                if key == "开关":
+                    if "打开" == value:
+                        enabled = True
+                    elif "关闭" == value:
+                        enabled = False
+                elif key == "回复内容":
+                    reply_text = value
 
-    def cmd_handle(self, cmd: str) -> [bool, str]:
-        lines = cmd[1:].split("\n")[1:]
+            help_info = """
+                    参考示例如下：
 
-        enabled = None  # 开关
-        reply_content = None  # 回复内容
-
-        for line in lines:
-            line = line.strip()
-            kwarg = line.split(":")
-            if len(kwarg) <= 1:
-                kwarg = line.split("：")
-            key = kwarg[0].strip()
-            value = kwarg[1].strip()
-            if key == "开关":
-                if "打开" == value:
-                    enabled = True
-                elif "关闭" == value:
-                    enabled = False
-            elif key == "回复内容":
-                reply_content = value
-
-        help_info = """
-        参考示例如下：
-
-        #群自动回复
-        开关: 打开/关闭
-        回复内容: 请稍后联系~
-        """
-        if enabled is None:
-            return False, "指令错误，" + help_info
-        if enabled and reply_content is None:
-            return False, "缺少回复内容，" + help_info
-        if enabled:
-            return True, "群自动回复，已开启"
-        else:
-            return True, "群自动回复，已关闭"
+                    #群自动回复
+                    开关: 打开/关闭
+                    回复内容: 请稍后联系~
+                    """
+            if enabled is None:
+                return False, "指令错误，" + help_info
+            if enabled and reply_text is None:
+                return False, "缺少回复内容，" + help_info
+            cmsg = context["msg"]
+            username = cmsg["actual_user_nickname"]
+            self._update_config(username, enabled, reply_text)
+            if enabled:
+                return True, "群自动回复，已开启"
+            else:
+                return True, "群自动回复，已关闭"
 
     def on_handle_context(self, e_context: EventContext):
         context = e_context["context"]
