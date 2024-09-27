@@ -29,7 +29,7 @@ class GroupAtAutoreply(Plugin):
     def _update_config(self, username, enabled, reply_text):
         new_config = {
             "enabled": enabled,
-            "reply_text": reply_text
+            "reply_text": reply_text if reply_text else ""
         }
         self.config[username] = new_config
         self.save_config(self.config)
@@ -76,8 +76,11 @@ class GroupAtAutoreply(Plugin):
                 elif key == "回复内容":
                     reply_text = value
 
-            if enabled is None or reply_text is None:
-                autoreply_config_result = "指令错误，参考示例如下：\n\n#群自动回复\n开关: 打开/关闭\n回复内容: 请稍后联系~"
+            help_info = "指令错误，参考示例如下：\n\n#群自动回复\n开关: 打开\n回复内容: 请稍后联系~\n\n#群自动回复\n开关: 关闭"
+            if enabled is None:
+                autoreply_config_result = help_info
+            elif enabled and reply_text is None:
+                autoreply_config_result = help_info
             else:
                 cmsg = context["msg"]
                 username = cmsg.from_user_nickname
