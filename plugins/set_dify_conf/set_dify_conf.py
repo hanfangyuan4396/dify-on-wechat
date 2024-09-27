@@ -59,13 +59,6 @@ class SetDifyConf(Plugin):
             for group_name in group_name_list:
                 self.group_chat_dify_app[group_name] = dify_app_conf.app_name
 
-    def _get_dify_app_conf(self, group_name: str) -> DifyAppConf | None:
-        try:
-            dify_app_name = self.group_chat_dify_app[group_name]
-            return self.dify_app_map[dify_app_name]
-        except:
-            return
-
     def _break_pass(self, e_context: EventContext):
         e_context.reply = None
         e_context.action = EventAction.BREAK_PASS
@@ -75,10 +68,15 @@ class SetDifyConf(Plugin):
             return
 
         context = e_context["context"]
-        if context.get("isgroup", False):
-            dify_app_conf = self._get_dify_app_conf(context["group_name"])
-        else:
-            dify_app_conf = self._get_dify_app_conf(self.single_chat_dify_app)
+        try:
+            if context.get("isgroup", False):
+                group_name = context["group_name"]
+                dify_app_name = self.group_chat_dify_app[group_name]
+                dify_app_conf = self.dify_app_map[dify_app_name]
+            else:
+                dify_app_conf = self.dify_app_map[self.single_chat_dify_app]
+        except:
+            dify_app_conf = None
 
         if dify_app_conf is None:
             self._break_pass(e_context)
