@@ -34,6 +34,7 @@ plugins/banwords/lib/__pycache__
 !plugins/jina_sum
 !plugins/jina_sum/**/
 !plugins/set_dify_conf
+!plugins/group_at_autoreply
 client_config.json
 # qrcode
 wx_qrcode.png
