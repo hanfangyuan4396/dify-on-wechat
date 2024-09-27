@@ -4,7 +4,7 @@
         "app_type": "chatbot",
         "api_base": "xxx",
         "api_key": "xxx",
-        "use_on_single_chat": "true",
+        "use_on_single_chat": true,
         "group_name_list": [
             "测试群1",
         ]
