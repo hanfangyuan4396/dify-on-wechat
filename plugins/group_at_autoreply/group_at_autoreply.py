@@ -67,8 +67,8 @@ class GroupAtAutoreply(Plugin):
                 kwarg = line.split(":")
                 if len(kwarg) <= 1:
                     kwarg = line.split("：")
-                if len(kwarg) <= 1:
-                    continue
+                    if len(kwarg) <= 1:
+                        continue
                 key = kwarg[0].strip()
                 value = kwarg[1].strip()
                 if key == "开关":
