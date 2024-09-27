@@ -28,11 +28,11 @@ class GroupAtAutoreply(Plugin):
 
     # 收到消息的时候，直接判断是否需要自动回复，需要的话，直接准备好，放在 context
     def on_receive_message(self, e_context: EventContext):
-        context = e_context["context"]
-        if context.type != ContextType.TEXT:
+        if self.config is None:
             return
 
-        if not context.get("isgroup", False):
+        context = e_context["context"]
+        if context.type != ContextType.TEXT or not context.get("isgroup", False):
             return
 
         autoreply_members = []
