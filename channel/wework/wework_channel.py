@@ -124,6 +124,10 @@ def _check(func):
 def all_msg_handler(wework_instance: ntwork.WeWork, message):
     logger.debug(f"收到消息: {message}")
     if 'data' in message:
+        sender = message['data'].get("sender", None)
+        if sender and sender == WeworkChannel().user_id:
+            logger.debug("自己发的，直接结束")
+            return
         # 首先查找conversation_id，如果没有找到，则查找room_conversation_id
         conversation_id = message['data'].get('conversation_id', message['data'].get('room_conversation_id'))
         if conversation_id is not None:
