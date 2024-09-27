@@ -72,46 +72,46 @@ class GroupAtAutoreply(Plugin):
                 key = kwarg[0].strip()
                 value = kwarg[1].strip()
                 if key == "开关":
-                    if "打开" == value:
-                        enabled = True
-                    elif "关闭" == value:
-                        enabled = False
+                    enabled = True if "打开" == value else (False if "关闭" == value else None)
                 elif key == "回复内容":
                     reply_text = value
 
-            help_info = """
-                    参考示例如下：
+            if enabled is None or reply_text is None:
+                autoreply_config_result = """
+                    指令错误，参考示例如下：
 
                     #群自动回复
                     开关: 打开/关闭
                     回复内容: 请稍后联系~
                     """
-            if enabled is None:
-                return False, "指令错误，" + help_info
-            if enabled and reply_text is None:
-                return False, "缺少回复内容，" + help_info
-            cmsg = context["msg"]
-            username = cmsg["actual_user_nickname"]
-            self._update_config(username, enabled, reply_text)
-            if enabled:
-                return True, "群自动回复，已开启"
             else:
-                return True, "群自动回复，已关闭"
+                cmsg = context["msg"]
+                username = cmsg["actual_user_nickname"]
+                self._update_config(username, enabled, reply_text)
+                autoreply_config_result = f"群自动回复，已{'开启' if enabled else '关闭'}"
+
+            context["autoreply_config_result"] = autoreply_config_result
+            e_context.action = EventAction.BREAK_PASS
 
     def on_handle_context(self, e_context: EventContext):
         context = e_context["context"]
-        autoreply_members = context["autoreply_members"]
-        if autoreply_members is None or len(autoreply_members) == 0:
-            return
+        reply_text = None
+        if "autoreply_members" in context:
+            autoreply_members = context["autoreply_members"]
+            if autoreply_members is None or len(autoreply_members) == 0:
+                return
 
-        reply_text = ""
-        for member in autoreply_members:
-            member_config = self.config[member]
-            if member_config["enabled"]:
-                reply_text += f"\n{member}自动回复：{member_config['reply_text']}"
+            reply_text = ""
+            for member in autoreply_members:
+                member_config = self.config[member]
+                if member_config["enabled"]:
+                    reply_text += f"\n{member}自动回复：{member_config['reply_text']}"
+        elif "autoreply_config_result" in context:
+            reply_text = context["autoreply_config_result"]
 
-        reply = Reply()
-        reply.type = ReplyType.TEXT
-        reply.content = reply_text
-        e_context["reply"] = reply
-        e_context.action = EventAction.BREAK_PASS
+        if reply_text is not None:
+            reply = Reply()
+            reply.type = ReplyType.TEXT
+            reply.content = reply_text
+            e_context["reply"] = reply
+            e_context.action = EventAction.BREAK_PASS
