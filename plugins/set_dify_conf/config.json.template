@@ -1,0 +1,12 @@
+[
+    {
+        "bot_name": "xxx",
+        "api_base": "xxx",
+        "api_key": "xxx",
+        "app_type": "chatbot",
+        "use_on_single_chat": "true",
+        "group_name_list": [
+            "测试群",
+        ]
+    }
+]
