@@ -85,6 +85,6 @@ class SetDifyConf(Plugin):
             return
 
         logger.info(f"use dify app: {dify_app_conf.app_name}")
-        context.dify_app_type = dify_app_conf.app_type
-        context.dify_api_base = dify_app_conf.api_base
-        context.dify_api_key = dify_app_conf.api_key
+        context["dify_app_type"] = dify_app_conf.app_type
+        context["dify_api_base"] = dify_app_conf.api_base
+        context["dify_api_key"] = dify_app_conf.api_key
