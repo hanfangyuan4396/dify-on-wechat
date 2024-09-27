@@ -21,7 +21,9 @@ class GroupAtAutoreply(Plugin):
             self.config = super().load_config()
             if self.config is None:
                 self.config = {}
-                self.save_config(self.config)
+                config_path = os.path.join(os.path.dirname(__file__), "config.json")
+                with open(config_path, "w") as f:
+                    json.dump(self.config, f, indent=4)
             logger.info("[GroupAtAutoreply] inited")
             self.handlers[Event.ON_RECEIVE_MESSAGE] = self.on_receive_message
             self.handlers[Event.ON_HANDLE_CONTEXT] = self.on_handle_context
