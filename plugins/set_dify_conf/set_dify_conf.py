@@ -83,6 +83,8 @@ class SetDifyConf(Plugin):
         if dify_app_conf is None:
             self._break_pass(e_context)
             return
-        e_context.dify_app_type = dify_app_conf.app_type
-        e_context.dify_api_base = dify_app_conf.api_base
-        e_context.dify_api_key = dify_app_conf.api_key
+
+        logger.info(f"{dify_app_conf.app_name}")
+        e_context["dify_app_type"] = dify_app_conf.app_type
+        e_context["dify_api_base"] = dify_app_conf.api_base
+        e_context["dify_api_key"] = dify_app_conf.api_key
