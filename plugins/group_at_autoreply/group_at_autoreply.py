@@ -19,6 +19,9 @@ class GroupAtAutoreply(Plugin):
         super().__init__()
         try:
             self.config = super().load_config()
+            if self.config is None:
+                self.config = {}
+                self.save_config(self.config)
             logger.info("[GroupAtAutoreply] inited")
             self.handlers[Event.ON_RECEIVE_MESSAGE] = self.on_receive_message
             self.handlers[Event.ON_HANDLE_CONTEXT] = self.on_handle_context
