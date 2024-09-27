@@ -77,13 +77,7 @@ class GroupAtAutoreply(Plugin):
                     reply_text = value
 
             if enabled is None or reply_text is None:
-                autoreply_config_result = """
-                    指令错误，参考示例如下：
-
-                    #群自动回复
-                    开关: 打开/关闭
-                    回复内容: 请稍后联系~
-                    """
+                autoreply_config_result = "指令错误，参考示例如下：\n\n#群自动回复\n开关: 打开/关闭\n回复内容: 请稍后联系~"
             else:
                 cmsg = context["msg"]
                 username = cmsg["actual_user_nickname"]
