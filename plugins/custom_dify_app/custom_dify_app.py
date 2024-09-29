@@ -13,15 +13,15 @@ class DifyAppConf:
 
 
 @plugins.register(
-    name="SetDifyConf",
+    name="CustomDifyApp",
     desire_priority=0,
     hidden=True,
     enabled=True,
-    desc="根据企微消息动态设置dify配置，实现不同群聊不同dify bot",
+    desc="根据群聊环境自动选择相应的Dify应用",
     version="0.1",
     author="zexin.li",
 )
-class SetDifyConf(Plugin):
+class CustomDifyApp(Plugin):
 
     def __init__(self):
         super().__init__()
