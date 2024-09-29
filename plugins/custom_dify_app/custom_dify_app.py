@@ -31,14 +31,14 @@ class CustomDifyApp(Plugin):
             self.single_chat_dify_app = None
             self.group_chat_dify_app: dict[str, str] = {}
             if self.config is None:
-                logger.info("[SetDifyConf] config is None")
+                logger.info("[CustomDifyApp] config is None")
                 return
             self._parse_config()
-            logger.info("[SetDifyConf] inited")
+            logger.info("[CustomDifyApp] inited")
             self.handlers[Event.ON_HANDLE_CONTEXT] = self.on_handle_context
         except Exception as e:
-            logger.error(f"[SetDifyConf]初始化异常：{e}")
-            raise "[SetDifyConf] init failed, ignore "
+            logger.error(f"[CustomDifyApp]初始化异常：{e}")
+            raise "[CustomDifyApp] init failed, ignore "
 
     def _parse_config(self):
         for dify_app_dict in self.config:
