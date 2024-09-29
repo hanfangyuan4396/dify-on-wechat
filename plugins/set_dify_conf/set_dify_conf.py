@@ -14,7 +14,7 @@ class DifyAppConf:
 
 @plugins.register(
     name="SetDifyConf",
-    desire_priority=-1,
+    desire_priority=0,
     hidden=True,
     enabled=True,
     desc="根据企微消息动态设置dify配置，实现不同群聊不同dify bot",
