@@ -3,14 +3,12 @@
 import plugins
 from plugins import *
 
-
 class DifyAppConf:
     def __init__(self, app_name, app_type, api_base, api_key):
         self.app_name: str = app_name
         self.app_type: str = app_type
         self.api_base: str = api_base
         self.api_key: str = api_key
-
 
 @plugins.register(
     name="CustomDifyApp",
