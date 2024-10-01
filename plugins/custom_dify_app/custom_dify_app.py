@@ -10,7 +10,7 @@ from plugins import *
     enabled=True,
     desc="根据群聊环境自动选择相应的Dify应用",
     version="0.2",
-    author="zexin.li",
+    author="zexin.li, hanfangyuan",
 )
 class CustomDifyApp(Plugin):
 
@@ -36,26 +36,31 @@ class CustomDifyApp(Plugin):
                 break
 
     def on_handle_context(self, e_context: EventContext):
-        if self.config is None:
-            return
+        try:
+            if self.config is None:
+                return
 
-        context = e_context["context"]
-        dify_app_conf = None
+            context = e_context["context"]
+            dify_app_conf = None
+            if context.get("isgroup", False):
+                group_name = context["group_name"]
+                for conf in self.config:
+                    if "group_name_keywords" in conf:
+                        if any(keyword in group_name for keyword in conf["group_name_keywords"]):
+                            dify_app_conf = conf
+                            break
+            else:
+                dify_app_conf = self.single_chat_conf
 
-        if context.get("isgroup", False):
-            group_name = context["group_name"]
-            for conf in self.config:
-                if "group_name_keywords" in conf:
-                    if any(keyword in group_name for keyword in conf["group_name_keywords"]):
-                        dify_app_conf = conf
-                        break
-        else:
-            dify_app_conf = self.single_chat_conf
+            if dify_app_conf is None:
+                return
+            if not (dify_app_conf.get("app_type") and dify_app_conf.get("api_base") and dify_app_conf.get("api_key")):
+                logger.warning(f"[CustomDifyApp] dify app config is invalid: {dify_app_conf}")
+                return
 
-        if dify_app_conf is None:
-            return
-
-        logger.info(f"use dify app: {dify_app_conf['app_name']}")
-        context["dify_app_type"] = dify_app_conf["app_type"]
-        context["dify_api_base"] = dify_app_conf["api_base"]
-        context["dify_api_key"] = dify_app_conf["api_key"]
+            logger.debug(f"use dify app: {dify_app_conf['app_name']}")
+            context["dify_app_type"] = dify_app_conf["app_type"]
+            context["dify_api_base"] = dify_app_conf["api_base"]
+            context["dify_api_key"] = dify_app_conf["api_key"]
+        except Exception as e:
+            logger.error(f"[CustomDifyApp] on_handle_context error: {e}")
