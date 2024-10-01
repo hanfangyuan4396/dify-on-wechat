@@ -39,35 +39,30 @@ class CustomDifyApp(Plugin):
             raise "[CustomDifyApp] init failed, ignore "
 
     def _parse_config(self):
-        for dify_app_config in self.config:
+        # TODO: dify_app_dict dify_app_map 变量命名区分度不够
+        for dify_app_dict in self.config:
             dify_app_conf = DifyAppConf(
-                app_name=dify_app_config["app_name"], app_type=dify_app_config["app_type"],
-                api_base=dify_app_config["api_base"], api_key=dify_app_config["api_key"]
+                app_name=dify_app_dict["app_name"], app_type=dify_app_dict["app_type"],
+                api_base=dify_app_dict["api_base"], api_key=dify_app_dict["api_key"]
             )
-            self.dify_app_map[dify_app_conf.api_key] = dify_app_conf
+            # TODO: app name 不能保证唯一性，建议换成api-key作为map的key
+            self.dify_app_map[dify_app_conf.app_name] = dify_app_conf
 
-            if "use_on_single_chat" in dify_app_config and dify_app_config["use_on_single_chat"]:
-                self.single_chat_dify_app = dify_app_conf.api_key
+            if "use_on_single_chat" in dify_app_dict and dify_app_dict["use_on_single_chat"]:
+                self.single_chat_dify_app = dify_app_conf.app_name
 
-            if "group_name_list" not in dify_app_config:
+            if "group_name_list" not in dify_app_dict:
                 continue
 
-            group_name_list = dify_app_config["group_name_list"]
+            # 添加到 group_chat_config_map 中，方便后续操作
+            group_name_list = dify_app_dict["group_name_list"]
+            # TODO: 使用群聊名称关键字，更方便配置，比如"dify交流群"关键字，可同时配置"dify交流群1"、"dify交流群2"、"dify交流群3"
             for group_name in group_name_list:
-                self._add_group_chat_config(group_name, dify_app_conf.api_key)
+                self.group_chat_dify_app[group_name] = dify_app_conf.app_name
 
-    def _add_group_chat_config(self, group_name, api_key):
-        if isinstance(group_name, str):
-            self.group_chat_dify_app[group_name] = api_key
-        elif isinstance(group_name, dict):
-            keyword = group_name.get("keyword")
-            if keyword:
-                for existing_group in list(self.group_chat_dify_app.keys()):
-                    if keyword in existing_group:
-                        self.group_chat_dify_app[existing_group] = api_key
-            exact_name = group_name.get("name")
-            if exact_name:
-                self.group_chat_dify_app[exact_name] = api_key
+    def _break_pass(self, e_context: EventContext):
+        e_context.reply = None
+        e_context.action = EventAction.BREAK_PASS
 
     def on_handle_context(self, e_context: EventContext):
         if self.config is None:
@@ -77,14 +72,16 @@ class CustomDifyApp(Plugin):
         try:
             if context.get("isgroup", False):
                 group_name = context["group_name"]
-                dify_app_key = self.group_chat_dify_app[group_name]
-                dify_app_conf = self.dify_app_map[dify_app_key]
+                dify_app_name = self.group_chat_dify_app[group_name]
+                dify_app_conf = self.dify_app_map[dify_app_name]
             else:
                 dify_app_conf = self.dify_app_map[self.single_chat_dify_app]
         except:
             dify_app_conf = None
 
         if dify_app_conf is None:
+            # TODO: 不能因为找不到dify配置就break，中断消息处理流程，直接continue即可
+            self._break_pass(e_context)
             return
 
         logger.info(f"use dify app: {dify_app_conf.app_name}")
