@@ -3,9 +3,6 @@ ChatGPT on WeChat项目插件，根据群聊环境自动选择相应的Dify应�
 
 支持根据群聊名称关键词自动切换不同的Dify应用，也支持为单聊配置专门的Dify应用
 
-![群聊示例](./docs/images/group_chat.jpg)
-![单聊示例](./docs/images/single_chat.jpg)
-
 ## 插件说明
 
 **插件名称**: custom_dify_app（自定义Dify应用）
@@ -19,15 +16,15 @@ ChatGPT on WeChat项目插件，根据群聊环境自动选择相应的Dify应�
 3. 在项目的`config.json`中启用该插件
 
 config.json 配置说明
-```json
+```bash
 [
     {
-        "app_name": "xx应用",              # Dify应用名称，仅用于标识
-        "app_type": "chatbot",            # Dify应用类型，目前支持 "chatbot"
+        "app_name": "xx应用",                 # Dify应用名称，仅用于标识
+        "app_type": "chatbot",                # Dify应用类型，目前支持 "chatbot", "agent", "workflow"
         "api_base": "https://api.dify.ai/v1", # Dify API 基础URL
-        "api_key": "app-xx",              # Dify应用的API密钥
-        "use_on_single_chat": false,      # 是否用于单聊，true/false
-        "group_name_keywords": [          # 群名关键词列表，当群名包含其中任一关键词时，使用该配置
+        "api_key": "app-xx",                  # Dify应用的API密钥
+        "use_on_single_chat": false,          # 是否用于单聊，true/false
+        "group_name_keywords": [              # 群名关键词列表，当群名包含其中任一关键词时，使用该配置
             "测试群"
         ]
     }
