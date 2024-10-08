@@ -1,11 +1,14 @@
 # encoding:utf-8
+import io
 import os
 import mimetypes
+import random
 import threading
 import json
 
 
 import requests
+from urllib.parse import urlparse, unquote
 
 from bot.bot import Bot
 from lib.dify.dify_client import DifyClient, ChatClient
@@ -14,6 +17,8 @@ from bridge.context import ContextType, Context
 from bridge.reply import Reply, ReplyType
 from common.log import logger
 from common import const, memory
+from common.utils import parse_markdown_text
+from common.tmp_dir import TmpDir
 from config import conf
 
 class DifyBot(Bot):
@@ -31,14 +36,15 @@ class DifyBot(Bot):
             # TODO: 适配除微信以外的其他channel
             channel_type = conf().get("channel_type", "wx")
             user = None
-            if channel_type == "wx":
+            if channel_type in ["wx", "wework", "gewechat"]:
                 user = context["msg"].other_user_nickname if context.get("msg") else "default"
-            elif channel_type in ["wechatcom_app", "wechatmp", "wechatmp_service", "wechatcom_service", "wework"]:
+            elif channel_type in ["wechatcom_app", "wechatmp", "wechatmp_service", "wechatcom_service"]:
                 user = context["msg"].other_user_id if context.get("msg") else "default"
             else:
                 return Reply(ReplyType.ERROR, f"unsupported channel type: {channel_type}, now dify only support wx, wechatcom_app, wechatmp, wechatmp_service channel")
             logger.debug(f"[DIFY] dify_user={user}")
             user = user if user else "default" # 防止用户名为None，当被邀请进的群未设置群名称时用户名为None
+            # FIXME: 群聊与私聊是同一个sessionid，应该区分不同的用户名, 同一个conversation_id下，只允许一个username，否则报错对话不存在
             session = self.sessions.get_session(session_id, user)
             logger.debug(f"[DIFY] session={session} query={query}")
 
@@ -61,16 +67,19 @@ class DifyBot(Bot):
             "user": session.get_user()
         }
 
+    def _get_dify_conf(self, context: Context, key, default=None):
+        return context.get(key, conf().get(key, default))
+
     def _reply(self, query: str, session: DifySession, context: Context):
         try:
             session.count_user_message() # 限制一个conversation中消息数，防止conversation过长
-            dify_app_type = conf().get('dify_app_type', 'chatbot')
+            dify_app_type = self._get_dify_conf(context, "dify_app_type", 'chatbot')
             if dify_app_type == 'chatbot':
-                return self._handle_chatbot(query, session)
+                return self._handle_chatbot(query, session, context)
             elif dify_app_type == 'agent':
                 return self._handle_agent(query, session, context)
             elif dify_app_type == 'workflow':
-                return self._handle_workflow(query, session)
+                return self._handle_workflow(query, session, context)
             else:
                 return None, "dify_app_type must be agent, chatbot or workflow"
 
@@ -79,9 +88,9 @@ class DifyBot(Bot):
             logger.exception(error_info)
             return None, error_info
 
-    def _handle_chatbot(self, query: str, session: DifySession):
-        api_key = conf().get('dify_api_key', '')
-        api_base = conf().get("dify_api_base", "https://api.dify.ai/v1")
+    def _handle_chatbot(self, query: str, session: DifySession, context: Context):
+        api_key = self._get_dify_conf(context, "dify_api_key", '')
+        api_base = self._get_dify_conf(context, "dify_api_base", "https://api.dify.ai/v1")
         chat_client = ChatClient(api_key, api_base)
         response_mode = 'blocking'
         payload = self._get_payload(query, session, response_mode)
@@ -96,7 +105,7 @@ class DifyBot(Bot):
         )
         
         if response.status_code != 200:
-            error_info = f"[DIFY] response text={response.text} status_code={response.status_code}"
+            error_info = f"[DIFY] payload={payload} response text={response.text} status_code={response.status_code}"
             logger.warn(error_info)
             return None, error_info
 
@@ -116,18 +125,105 @@ class DifyBot(Bot):
         # }
         rsp_data = response.json()
         logger.debug("[DIFY] usage {}".format(rsp_data.get('metadata', {}).get('usage', 0)))
-        # TODO: 处理返回的图片文件
+
+        answer = rsp_data['answer']
+        parsed_content = parse_markdown_text(answer)
+        
         # {"answer": "![image](/files/tools/dbf9cd7c-2110-4383-9ba8-50d9fd1a4815.png?timestamp=1713970391&nonce=0d5badf2e39466042113a4ba9fd9bf83&sign=OVmdCxCEuEYwc9add3YNFFdUpn4VdFKgl84Cg54iLnU=)"}
-        reply = Reply(ReplyType.TEXT, rsp_data['answer'])
+        at_prefix = ""
+        channel = context.get("channel")
+        is_group = context.get("isgroup", False)
+        if is_group:
+            at_prefix = "@" + context["msg"].actual_user_nickname + "\n" 
+        for item in parsed_content[:-1]:
+            reply = None
+            if item['type'] == 'text':
+                content = at_prefix + item['content']
+                reply = Reply(ReplyType.TEXT, content)
+            elif item['type'] == 'image':
+                image_url = self._fill_file_base_url(item['content'])
+                image = self._download_image(image_url)
+                if image:
+                    reply = Reply(ReplyType.IMAGE, image)
+                else:
+                    reply = Reply(ReplyType.TEXT, f"图片链接：{image_url}")
+            elif item['type'] == 'file':
+                file_url = self._fill_file_base_url(item['content'])
+                file_path = self._download_file(file_url)
+                if file_path:
+                    reply = Reply(ReplyType.FILE, file_path)  
+                else:
+                    reply = Reply(ReplyType.TEXT, f"文件链接：{file_url}")
+            logger.debug(f"[DIFY] reply={reply}")
+            if reply and channel:
+                channel.send(reply, context)
+
+        final_item = parsed_content[-1]
+        final_reply = None
+        if final_item['type'] == 'text':
+            content = final_item['content']
+            if is_group:
+                at_prefix = "@" + context["msg"].actual_user_nickname + "\n"
+                content = at_prefix + content
+            final_reply = Reply(ReplyType.TEXT, final_item['content'])
+        elif final_item['type'] == 'image':
+            image_url = self._fill_file_base_url(final_item['content'])
+            image = self._download_image(image_url)
+            if image:
+                final_reply = Reply(ReplyType.IMAGE, image)
+            else:
+                final_reply = Reply(ReplyType.TEXT, f"图片链接：{image_url}")
+        elif final_item['type'] == 'file':
+            file_url = self._fill_file_base_url(final_item['content'])
+            file_path = self._download_file(file_url)
+            if file_path:
+                final_reply = Reply(ReplyType.FILE, file_path)
+            else:
+                final_reply = Reply(ReplyType.TEXT, f"文件链接：{file_url}")
+
         # 设置dify conversation_id, 依靠dify管理上下文
         if session.get_conversation_id() == '':
             session.set_conversation_id(rsp_data['conversation_id'])
         
-        return reply, None
+        return final_reply, None
+
+    def _download_file(self, url):
+        try:
+            response = requests.get(url)
+            response.raise_for_status()
+            parsed_url = urlparse(url)
+            logger.debug(f"Downloading file from {url}")
+            url_path = unquote(parsed_url.path)
+            # 从路径中提取文件名
+            file_name = url_path.split('/')[-1]
+            logger.debug(f"Saving file as {file_name}")
+            file_path = os.path.join(TmpDir().path(), file_name)
+            with open(file_path, 'wb') as file:
+                file.write(response.content)
+            return file_path
+        except Exception as e:
+            logger.error(f"Error downloading {url}: {e}")
+        return None
+
+    def _download_image(self, url):
+        try:
+            pic_res = requests.get(url, stream=True)
+            pic_res.raise_for_status()
+            image_storage = io.BytesIO()
+            size = 0
+            for block in pic_res.iter_content(1024):
+                size += len(block)
+                image_storage.write(block)
+            logger.debug(f"[WX] download image success, size={size}, img_url={url}")
+            image_storage.seek(0)
+            return image_storage
+        except Exception as e:
+            logger.error(f"Error downloading {url}: {e}")
+        return None
 
     def _handle_agent(self, query: str, session: DifySession, context: Context):
-        api_key = conf().get('dify_api_key', '')
-        api_base = conf().get("dify_api_base", "https://api.dify.ai/v1")
+        api_key = self._get_dify_conf(context, "dify_api_key", '')
+        api_base = self._get_dify_conf(context, "dify_api_base", "https://api.dify.ai/v1")
         chat_client = ChatClient(api_key, api_base)
         response_mode = 'streaming'
         payload = self._get_payload(query, session, response_mode)
@@ -135,14 +231,14 @@ class DifyBot(Bot):
         response = chat_client.create_chat_message(
             inputs=payload['inputs'],
             query=payload['query'],
-            user=payload['user'],
+            user= payload['user'],
             response_mode=payload['response_mode'],
             conversation_id=payload['conversation_id'],
             files=files
         )
 
         if response.status_code != 200:
-            error_info = f"[DIFY] response text={response.text} status_code={response.status_code}"
+            error_info = f"[DIFY] payload={payload} response text={response.text} status_code={response.status_code}"
             logger.warn(error_info)
             return None, error_info
         # response:
@@ -178,14 +274,14 @@ class DifyBot(Bot):
             session.set_conversation_id(conversation_id)
         return reply, None
 
-    def _handle_workflow(self, query: str, session: DifySession):
+    def _handle_workflow(self, query: str, session: DifySession, context: Context):
         payload = self._get_workflow_payload(query, session)
-        api_key = conf().get('dify_api_key', '')
-        api_base = conf().get("dify_api_base", "https://api.dify.ai/v1")
+        api_key = self._get_dify_conf(context, "dify_api_key", '')
+        api_base = self._get_dify_conf(context, "dify_api_base", "https://api.dify.ai/v1")
         dify_client = DifyClient(api_key, api_base)
         response = dify_client._send_request("POST", "/workflows/run", json=payload)
         if response.status_code != 200:
-            error_info = f"[DIFY] response text={response.text} status_code={response.status_code}"
+            error_info = f"[DIFY] payload={payload} response text={response.text} status_code={response.status_code}"
             logger.warn(error_info)
             return None, error_info
 
@@ -217,7 +313,8 @@ class DifyBot(Bot):
         return reply, None
 
     def _get_upload_files(self, session: DifySession):
-        img_cache = memory.USER_IMAGE_CACHE.get(session.get_session_id())
+        session_id = session.get_session_id()
+        img_cache = memory.USER_IMAGE_CACHE.get(session_id)
         if not img_cache or not conf().get("image_recognition"):
             return None
         api_key = conf().get('dify_api_key', '')
@@ -239,6 +336,8 @@ class DifyBot(Bot):
                 error_info = f"[DIFY] response text={response.text} status_code={response.status_code} when upload file"
                 logger.warn(error_info)
                 return None, error_info
+        # 清理图片缓存
+        memory.USER_IMAGE_CACHE[session_id] = None
         # {
         #     'id': 'f508165a-10dc-4256-a7be-480301e630e6',
         #     'name': '0.png',

@@ -56,6 +56,7 @@ class ChatChannel(Channel):
             if context.get("isgroup", False):
                 group_name = cmsg.other_user_nickname
                 group_id = cmsg.other_user_id
+                context["group_name"] = group_name
 
                 group_name_white_list = config.get("group_name_white_list", [])
                 group_name_keyword_white_list = config.get("group_name_keyword_white_list", [])
@@ -94,11 +95,6 @@ class ChatChannel(Channel):
 
         # 消息内容匹配过程，并处理content
         if ctype == ContextType.TEXT:
-            if first_in and "」\n- - - - - - -" in content:  # 初次匹配 过滤引用消息
-                logger.debug(content)
-                logger.debug("[chat_channel]reference query skipped")
-                return None
-
             nick_name_black_list = conf().get("nick_name_black_list", [])
             if context.get("isgroup", False):  # 群聊
                 # 校验关键字
