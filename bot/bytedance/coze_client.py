@@ -2,7 +2,7 @@ import logging
 import os
 import time
 from typing import List
-from bot.coze.coze_session import CozeSession
+from bot.bytedance.coze_session import CozeSession
 from pathlib import Path
 from cozepy import Coze, TokenAuth, Message, File, MessageContentType, MessageRole, MessageObjectString, \
     MessageObjectStringType
