@@ -65,8 +65,8 @@ def create_bot(bot_type):
         return ZHIPUAIBot()
 
     elif bot_type == const.COZE:
-        from bot.bytedance.bytedance_coze_bot import ByteDanceCozeBot
-        return ByteDanceCozeBot()
+        from bot.coze.coze_bot import CozeBot
+        return CozeBot()
 
     elif bot_type == const.MOONSHOT:
         from bot.moonshot.moonshot_bot import MoonshotBot
