@@ -16,7 +16,6 @@ from common.utils import parse_markdown_text
 from common.tmp_dir import TmpDir
 from cozepy import MessageType,Message
 
-
 class ByteDanceCozeBot(Bot):
     def __init__(self):
         super().__init__()
@@ -42,13 +41,16 @@ class ByteDanceCozeBot(Bot):
             logger.info("[COZE] query={}".format(query))
             channel_type = conf().get("channel_type", "wx")
             user_id = None
-            if channel_type == "wx":
-                user_id = context["msg"].other_user_nickname if context.get("msg") else "default"
-            elif channel_type in ["wechatcom_app", "wechatmp", "wechatmp_service", "wechatcom_service", "wework"]:
-                user_id = context["msg"].other_user_id if context.get("msg") else "default"
+            if channel_type in ["wx", "wework", "gewechat"]:
+                user_id = context["msg"].other_user_nickname
+                if user_id is None or user_id == '':
+                    user_id = context["msg"].actual_user_nickname
+            elif channel_type in ["wechatcom_app", "wechatmp", "wechatmp_service", "wechatcom_service"]:
+                user_id = context["msg"].other_user_id
+                if user_id is None or user_id == '':
+                    user_id = "default"
             else:
-                return Reply(ReplyType.ERROR,
-                             f"unsupported channel type: {channel_type}, now COZE only support wx, wechatcom_app, wechatmp, wechatmp_service channel")
+                return Reply(ReplyType.ERROR, f"unsupported channel type: {channel_type}, now coze only support wx, wechatcom_app, wechatmp, wechatmp_service channel")
             logger.debug(f"[COZE] user_id={user_id}")
             session_id = context["session_id"]
             session = self.sessions.session_query(query, user_id, session_id)
