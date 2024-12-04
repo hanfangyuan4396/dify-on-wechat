@@ -94,7 +94,7 @@ class DifyBot(Bot):
         chat_client = ChatClient(api_key, api_base)
         response_mode = 'blocking'
         payload = self._get_payload(query, session, response_mode)
-        files = self._get_upload_files(session)
+        files = self._get_upload_files(session, context)
         response = chat_client.create_chat_message(
             inputs=payload['inputs'],
             query=payload['query'],
@@ -103,13 +103,13 @@ class DifyBot(Bot):
             conversation_id=payload['conversation_id'],
             files=files
         )
-        
+
         if response.status_code != 200:
             error_info = f"[DIFY] payload={payload} response text={response.text} status_code={response.status_code}"
             logger.warn(error_info)
             return None, error_info
 
-        # response: 
+        # response:
         # {
         #     "event": "message",
         #     "message_id": "9da23599-e713-473b-982c-4328d4f5c78a",
@@ -128,13 +128,13 @@ class DifyBot(Bot):
 
         answer = rsp_data['answer']
         parsed_content = parse_markdown_text(answer)
-        
+
         # {"answer": "![image](/files/tools/dbf9cd7c-2110-4383-9ba8-50d9fd1a4815.png?timestamp=1713970391&nonce=0d5badf2e39466042113a4ba9fd9bf83&sign=OVmdCxCEuEYwc9add3YNFFdUpn4VdFKgl84Cg54iLnU=)"}
         at_prefix = ""
         channel = context.get("channel")
         is_group = context.get("isgroup", False)
         if is_group:
-            at_prefix = "@" + context["msg"].actual_user_nickname + "\n" 
+            at_prefix = "@" + context["msg"].actual_user_nickname + "\n"
         for item in parsed_content[:-1]:
             reply = None
             if item['type'] == 'text':
@@ -151,13 +151,15 @@ class DifyBot(Bot):
                 file_url = self._fill_file_base_url(item['content'])
                 file_path = self._download_file(file_url)
                 if file_path:
-                    reply = Reply(ReplyType.FILE, file_path)  
+                    reply = Reply(ReplyType.FILE, file_path)
                 else:
                     reply = Reply(ReplyType.TEXT, f"文件链接：{file_url}")
             logger.debug(f"[DIFY] reply={reply}")
             if reply and channel:
                 channel.send(reply, context)
-
+        # parsed_content 没有数据时，直接不回复
+        if not parsed_content:
+            return None, None
         final_item = parsed_content[-1]
         final_reply = None
         if final_item['type'] == 'text':
@@ -184,7 +186,7 @@ class DifyBot(Bot):
         # 设置dify conversation_id, 依靠dify管理上下文
         if session.get_conversation_id() == '':
             session.set_conversation_id(rsp_data['conversation_id'])
-        
+
         return final_reply, None
 
     def _download_file(self, url):
@@ -227,7 +229,7 @@ class DifyBot(Bot):
         chat_client = ChatClient(api_key, api_base)
         response_mode = 'streaming'
         payload = self._get_payload(query, session, response_mode)
-        files = self._get_upload_files(session)
+        files = self._get_upload_files(session, context)
         response = chat_client.create_chat_message(
             inputs=payload['inputs'],
             query=payload['query'],
@@ -312,17 +314,20 @@ class DifyBot(Bot):
         reply = Reply(ReplyType.TEXT, rsp_data['data']['outputs']['text'])
         return reply, None
 
-    def _get_upload_files(self, session: DifySession):
+    def _get_upload_files(self, session: DifySession, context: Context):
         session_id = session.get_session_id()
         img_cache = memory.USER_IMAGE_CACHE.get(session_id)
-        if not img_cache or not conf().get("image_recognition"):
+        if not img_cache or not self._get_dify_conf(context, "image_recognition", False):
             return None
-        api_key = conf().get('dify_api_key', '')
-        api_base = conf().get("dify_api_base", "https://api.dify.ai/v1")
+        # 清理图片缓存
+        memory.USER_IMAGE_CACHE[session_id] = None
+        api_key = self._get_dify_conf(context, "dify_api_key", '')
+        api_base = self._get_dify_conf(context, "dify_api_base", "https://api.dify.ai/v1")
         dify_client = DifyClient(api_key, api_base)
         msg = img_cache.get("msg")
         path = img_cache.get("path")
         msg.prepare()
+
         with open(path, 'rb') as file:
             file_name = os.path.basename(path)
             file_type, _ = mimetypes.guess_type(file_name)
@@ -330,14 +335,11 @@ class DifyBot(Bot):
                 'file': (file_name, file, file_type)
             }
             response = dify_client.file_upload(user=session.get_user(), files=files)
-            response.raise_for_status()
 
-            if response.status_code != 200 and response.status_code != 201:
-                error_info = f"[DIFY] response text={response.text} status_code={response.status_code} when upload file"
-                logger.warn(error_info)
-                return None, error_info
-        # 清理图片缓存
-        memory.USER_IMAGE_CACHE[session_id] = None
+        if response.status_code != 200 and response.status_code != 201:
+            error_info = f"[DIFY] response text={response.text} status_code={response.status_code} when upload file"
+            logger.warn(error_info)
+            return None, error_info
         # {
         #     'id': 'f508165a-10dc-4256-a7be-480301e630e6',
         #     'name': '0.png',
@@ -438,10 +440,10 @@ class DifyBot(Bot):
                 break
             else:
                 logger.warn("[DIFY] unknown event: {}".format(event))
-        
+
         if not conversation_id:
             raise Exception("conversation_id not found")
-        
+
         return merged_message, conversation_id
 
     def _append_agent_message(self, accumulated_agent_message,  merged_message):
