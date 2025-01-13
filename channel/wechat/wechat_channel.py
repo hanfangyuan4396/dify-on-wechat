@@ -20,7 +20,7 @@ from common.expired_dict import ExpiredDict
 from common.log import logger
 from common.singleton import singleton
 from common.time_check import time_checker
-from common.utils import convert_webp_to_png
+from common.utils import convert_webp_to_png, remove_markdown_symbol
 from config import conf, get_appdata_dir
 from lib import itchat
 from lib.itchat.content import *
@@ -98,6 +98,14 @@ def qrCallback(uuid, status, qrcode):
         import qrcode
 
         url = f"https://login.weixin.qq.com/l/{uuid}"
+
+        img = qrcode.make(data=url)
+
+        if not os.path.exists('tmp'):
+            os.makedirs('tmp')
+
+        with open('tmp/login.png', 'wb') as f:
+            img.save(f)
 
         qr_api1 = "https://api.isoyu.com/qr/?m=1&e=L&p=20&url={}".format(url)
         qr_api2 = "https://api.qrserver.com/v1/create-qr-code/?size=400×400&data={}".format(url)
@@ -242,9 +250,11 @@ class WechatChannel(ChatChannel):
     def send(self, reply: Reply, context: Context):
         receiver = context.get("receiver")
         if reply.type == ReplyType.TEXT:
+            reply.content = remove_markdown_symbol(reply.content)
             itchat.send(reply.content, toUserName=receiver)
             logger.info("[WX] sendMsg={}, receiver={}".format(reply, receiver))
         elif reply.type == ReplyType.ERROR or reply.type == ReplyType.INFO:
+            reply.content = remove_markdown_symbol(reply.content)
             itchat.send(reply.content, toUserName=receiver)
             logger.info("[WX] sendMsg={}, receiver={}".format(reply, receiver))
         elif reply.type == ReplyType.VOICE:

@@ -7,7 +7,7 @@ api文档地址为：[gewechat api](https://apifox.com/apidoc/shared-69ba62ca-cb
 首先可以简单了解 dify-on-wechat、dify、gewechat服务的调用关系，如下图所示
 
 <div align="center">
-<img width="700" src="./gewechat_service_design.png">
+<img width="700" src="../../docs/gewechat/gewechat_service_design.png">
 </div>
 
 
@@ -33,7 +33,7 @@ docker tag ghcr.io/tu1h/wechotd/wechotd:alpine gewe
 
 ```bash
 mkdir -p gewechat/data  
-docker run -itd -v ./gewechat/data:/root/temp -p 2531:2531 -p 2532:2532 --restart=always --name=gewe gewe
+docker run -itd -v gewechat/data:/root/temp -p 2531:2531 -p 2532:2532 --restart=always --name=gewe gewe
 ```
 
 ## 2.3 使用docker compose启动
@@ -70,7 +70,7 @@ docker compose up -d
 看到如下日志，表示gewechat服务启动成功
 
 <div align="center">
-<img width="700" src="./gewechat_service_success.jpg">
+<img width="700" src="../../docs/gewechat/gewechat_service_success.jpg">
 </div>
 
 # 3. 使用dify-on-wechat对接gewechat服务
@@ -129,7 +129,7 @@ python app.py
 启动成功后，可以看到如下日志信息，注意token和appid会自动保存到config.json，无需手动保存
 
 <div align="center">
-<img width="700" src="./gewechat_login.jpg">
+<img width="700" src="../../docs/gewechat/gewechat_login.jpg">
 </div>
 
 ## 3.4 利用gewechat发送语音条消息
@@ -154,9 +154,8 @@ python app.py
 gewechat支持**发送语音条消息**，但是gewechat服务只能获取到**20s**以内的语音，所以**你只能给bot发送20s以内的语音**，而**bot给你发送语音时无此限制**。
 
 <div align="center">
-<img width="700" src="./gewechat_voice.jpg">
+<img width="700" src="../../docs/gewechat/gewechat_voice.jpg">
 </div>
-
 
 
 # 4. gewechat_channel 服务的限制

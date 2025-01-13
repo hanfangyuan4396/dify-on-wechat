@@ -1,18 +1,20 @@
 import os
+import time
 import json
 import web
 from urllib.parse import urlparse
 
-from bridge.context import Context
+from bridge.context import Context, ContextType
 from bridge.reply import Reply, ReplyType
 from channel.chat_channel import ChatChannel
 from channel.gewechat.gewechat_message import GeWeChatMessage
 from common.log import logger
 from common.singleton import singleton
 from common.tmp_dir import TmpDir
-from common.utils import compress_imgfile, fsize
 from config import conf, save_config
 from lib.gewechat import GewechatClient
+from voice.audio_convert import mp3_to_silk
+import uuid
 
 MAX_UTF8_LEN = 2048
 
@@ -95,8 +97,9 @@ class GeWeChatChannel(ChatChannel):
         # 从回调地址中解析出端口与url path，启动回调服务器  
         parsed_url = urlparse(callback_url)
         path = parsed_url.path
-        port = parsed_url.port
-        logger.info(f"[gewechat] start callback server: {callback_url}")
+        # 如果没有指定端口，使用默认端口80
+        port = parsed_url.port or 80
+        logger.info(f"[gewechat] start callback server: {callback_url}, using port {port}")
         urls = (path, "channel.gewechat.gewechat_channel.Query")
         app = web.application(urls, globals(), autoreload=False)
         web.httpserver.runsimple(app.wsgifunc(), ("0.0.0.0", port))
@@ -113,8 +116,18 @@ class GeWeChatChannel(ChatChannel):
             logger.info("[gewechat] Do send text to {}: {}".format(receiver, reply_text))
         elif reply.type == ReplyType.VOICE:
             try:
-                # TODO: mp3 to silk
                 content = reply.content
+                if content.endswith('.mp3'):
+                    # 如果是mp3文件，转换为silk格式
+                    silk_path = content + '.silk'
+                    duration = mp3_to_silk(content, silk_path)
+                    callback_url = conf().get("gewechat_callback_url")
+                    silk_url = callback_url + "?file=" + silk_path
+                    self.client.post_voice(self.app_id, receiver, silk_url, duration)
+                    logger.info(f"[gewechat] Do send voice to {receiver}: {silk_url}, duration: {duration/1000.0} seconds")
+                    return
+                else:
+                    logger.error(f"[gewechat] voice file is not mp3, path: {content}, only support mp3")
             except Exception as e:
                 logger.error(f"[gewechat] send voice failed: {e}")
         elif reply.type == ReplyType.IMAGE_URL:
@@ -123,23 +136,39 @@ class GeWeChatChannel(ChatChannel):
             logger.info("[gewechat] sendImage url={}, receiver={}".format(img_url, receiver))
         elif reply.type == ReplyType.IMAGE:
             image_storage = reply.content
-            sz = fsize(image_storage)
-            if sz >= 10 * 1024 * 1024:
-                logger.info("[gewechat] image too large, ready to compress, sz={}".format(sz))
-                image_storage = compress_imgfile(image_storage, 10 * 1024 * 1024 - 1)
-                logger.info("[gewechat] image compressed, sz={}".format(fsize(image_storage)))
             image_storage.seek(0)
-            self.client.post_image(self.app_id, receiver, image_storage.read())
-            logger.info("[gewechat] sendImage, receiver={}".format(receiver))
+            # Save image to tmp directory
+            img_data = image_storage.read()
+            img_file_name = f"img_{str(uuid.uuid4())}.png"
+            img_file_path = TmpDir().path() + img_file_name
+            with open(img_file_path, "wb") as f:
+                f.write(img_data)
+            # Construct callback URL
+            callback_url = conf().get("gewechat_callback_url")
+            img_url = callback_url + "?file=" + img_file_path
+            self.client.post_image(self.app_id, receiver, img_url)
+            logger.info("[gewechat] sendImage, receiver={}, url={}".format(receiver, img_url))
 
 class Query:
     def GET(self):
+        # 搭建简单的文件服务器，用于向gewechat服务传输语音等文件，但只允许访问tmp目录下的文件
         params = web.input(file="")
-        if params.file:
-            if os.path.exists(params.file):
-                with open(params.file, 'rb') as f:
+        file_path = params.file
+        if file_path:
+            # 使用os.path.abspath清理路径
+            clean_path = os.path.abspath(file_path)
+            # 获取tmp目录的绝对路径
+            tmp_dir = os.path.abspath("tmp")
+            # 检查文件路径是否在tmp目录下
+            if not clean_path.startswith(tmp_dir):
+                logger.error(f"[gewechat] Forbidden access to file outside tmp directory: file_path={file_path}, clean_path={clean_path}, tmp_dir={tmp_dir}")
+                raise web.forbidden()
+
+            if os.path.exists(clean_path):
+                with open(clean_path, 'rb') as f:
                     return f.read()
             else:
+                logger.error(f"[gewechat] File not found: {clean_path}")
                 raise web.notfound()
         return "gewechat callback server is running"
 
@@ -148,8 +177,33 @@ class Query:
         data = json.loads(web.data())
         logger.debug("[gewechat] receive data: {}".format(data))
         
+        # gewechat服务发送的回调测试消息
+        if isinstance(data, dict) and 'testMsg' in data and 'token' in data:
+            logger.debug(f"[gewechat] 收到gewechat服务发送的回调测试消息")
+            return "success"
+
         gewechat_msg = GeWeChatMessage(data, channel.client)
         
+        # 微信客户端的状态同步消息
+        if gewechat_msg.ctype == ContextType.STATUS_SYNC:
+            logger.debug(f"[gewechat] ignore status sync message: {gewechat_msg.content}")
+            return "success"
+
+        # 忽略非用户消息（如公众号、系统通知等）
+        if gewechat_msg.ctype == ContextType.NON_USER_MSG:
+            logger.debug(f"[gewechat] ignore non-user message from {gewechat_msg.from_user_id}: {gewechat_msg.content}")
+            return "success"
+
+        # 忽略来自自己的消息
+        if gewechat_msg.my_msg:
+            logger.debug(f"[gewechat] ignore message from myself: {gewechat_msg.actual_user_id}: {gewechat_msg.content}")
+            return "success"
+
+        # 忽略过期的消息
+        if int(gewechat_msg.create_time) < int(time.time()) - 60 * 5: # 跳过5分钟前的历史消息
+            logger.debug(f"[gewechat] ignore expired message from {gewechat_msg.actual_user_id}: {gewechat_msg.content}")
+            return "success"
+
         context = channel._compose_context(
             gewechat_msg.ctype,
             gewechat_msg.content,
