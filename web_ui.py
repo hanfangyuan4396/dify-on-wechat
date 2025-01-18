@@ -264,6 +264,20 @@ def logout():
         gr.update(visible=False) # 头像
     )
 
+def show_logout_confirm():
+    """显示退出确认对话框"""
+    return (
+        gr.update(visible=True),  # 显示确认对话框
+        gr.update(visible=False)  # 隐藏控制按钮组
+    )
+
+def cancel_logout():
+    """取消退出"""
+    return (
+        gr.update(visible=False),  # 隐藏确认对话框
+        gr.update(visible=True)    # 显示控制按钮组
+    )
+
 with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.themes.sizes.radius_lg)) as demo:
     # 顶部状态栏
     with gr.Row(equal_height=True):
@@ -350,6 +364,23 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
                             min_width=120
                         )
 
+    # 退出确认对话框
+    with gr.Column(visible=False) as logout_confirm:
+        with gr.Column(variant="box"):
+            gr.Markdown("### 确认退出")
+            gr.Markdown("确定要退出登录吗？")
+            with gr.Row():
+                confirm_button = gr.Button(
+                    "确认退出",
+                    variant="primary",
+                    size="sm"
+                )
+                cancel_button = gr.Button(
+                    "取消",
+                    variant="secondary",
+                    size="sm"
+                )
+
     # 事件处理
     login_button.click(
         login,
@@ -384,6 +415,22 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
     refresh_button.click(get_qrcode_image, outputs=qrcode_image)
     
     logout_button.click(
+        show_logout_confirm,
+        outputs=[
+            logout_confirm,
+            control_group
+        ]
+    )
+    
+    cancel_button.click(
+        cancel_logout,
+        outputs=[
+            logout_confirm,
+            control_group
+        ]
+    )
+    
+    confirm_button.click(
         logout,
         outputs=[
             login_status,
@@ -392,6 +439,12 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
             logout_button,
             qrcode_image,
             user_avatar
+        ]
+    ).then(
+        cancel_logout,  # 退出后关闭确认对话框
+        outputs=[
+            logout_confirm,
+            control_group
         ]
     )
 
