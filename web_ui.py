@@ -21,11 +21,16 @@ def check_gewechat_online():
         tuple: (是否在线, 错误信息)
     """
     try:
-        from lib.gewechat.client import GewechatClient
+        if conf().get("channel_type") != "gewechat":
+            return False, "非gewechat，无需检查"
+        
         base_url = conf().get("gewechat_base_url")
         token = conf().get("gewechat_token")
         app_id = conf().get("gewechat_app_id")
-        
+        if not all([base_url, token, app_id]):
+            return False, "gewechat配置不完整"
+
+        from lib.gewechat.client import GewechatClient
         client = GewechatClient(base_url, token)
         online_status = client.check_online(app_id)
         
@@ -133,33 +138,41 @@ def start_run():
     # 重启后获取用户状态
     if not current_process_instance.is_alive():
         return (
-            gr.update(value="重启失败❌ 请检查日志"),
-            gr.update(visible=False),
-            gr.update(visible=False),
-            gr.update(visible=False)
+            gr.update(value="重启失败❌ 请重试"), # 状态
+            gr.update(visible=False), # 刷新按钮
+            gr.update(visible=False), # 重启按钮
+            gr.update(visible=False), # 退出按钮
+            gr.update(visible=False), # 二维码
+            gr.update(visible=False)  # 头像
         )
         
     if conf().get("channel_type") == "gewechat":
         nickname, _ = get_gewechat_profile()
         if nickname:
             return (
-                gr.update(value=f"重启成功😀 [{nickname}]🤖  已在线✅"),
-                gr.update(visible=False),
-                gr.update(visible=False),
-                gr.update(visible=True, value=get_avatar_image())
+                gr.update(value=f"重启成功😀 [{nickname}]🤖  已在线✅"), # 状态
+                gr.update(visible=False), # 刷新二维码按钮
+                gr.update(visible=True), # 重启按钮
+                gr.update(visible=True), # 退出按钮
+                gr.update(visible=False), # 二维码
+                gr.update(visible=True, value=get_avatar_image()) # 头像
             )
         else:
             return (
-                gr.update(value="重启成功😀 但用户未登录❗"),
-                gr.update(visible=True),
-                gr.update(visible=True, value=get_qrcode_image()),
-                gr.update(visible=False)
+                gr.update(value="重启成功😀 但用户未登录❗"), # 状态
+                gr.update(visible=True), # 刷新二维码按钮
+                gr.update(visible=True), # 重启按钮
+                gr.update(visible=False),# 退出按钮
+                gr.update(visible=True, value=get_qrcode_image()), # 二维码
+                gr.update(visible=False) # 头像
             )
     return (
-        gr.update(value="重启成功😀"),
-        gr.update(visible=True),
-        gr.update(visible=True, value=get_qrcode_image()),
-        gr.update(visible=False)
+        gr.update(value="重启成功😀"), # 状态
+        gr.update(visible=True), # 刷新二维码按钮
+        gr.update(visible=True), # 重启按钮
+        gr.update(visible=False), # 退出按钮
+        gr.update(visible=True, value=get_qrcode_image()), # 二维码
+        gr.update(visible=False) # 头像
     )
     
 def get_qrcode_image():
@@ -225,6 +238,32 @@ def login(username, password):
             gr.update(visible=False)  # Hide control group
         )
 
+def logout():
+    """退出登录
+    Returns:
+        tuple: (状态文本, 刷新按钮, 重启按钮, 退出按钮, 二维码, 头像)
+    """
+    if conf().get("channel_type") != "gewechat" or not check_gewechat_online()[0]:
+        return (
+            gr.update(value="非gewechat或不在线，无需退出"), # 状态
+            gr.update(visible=True, variant="primary"), # 刷新按钮
+            gr.update(visible=True), # 重启按钮
+            gr.update(visible=False), # 退出按钮
+            gr.update(visible=True, value=get_qrcode_image()), # 二维码
+            gr.update(visible=False) # 头像
+        )
+
+    # TODO: 退出登录逻辑
+    time.sleep(5)
+    return (
+        gr.update(value="已退出登录，点击重启服务按钮可重新登录"), # 状态
+        gr.update(visible=False), # 刷新按钮
+        gr.update(visible=True, variant="primary"), # 重启按钮
+        gr.update(visible=False), # 退出按钮
+        gr.update(visible=False), # 二维码
+        gr.update(visible=False) # 头像
+    )
+
 with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.themes.sizes.radius_lg)) as demo:
     # 顶部状态栏
     with gr.Row(equal_height=True):
@@ -287,18 +326,26 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
             with gr.Column(visible=False) as control_group:
                 with gr.Row(equal_height=True, variant="panel"):
                     with gr.Column(scale=1):
-                        restart_button = gr.Button(
-                            "重启服务",
+                        refresh_button = gr.Button(
+                            "刷新二维码",
                             visible=False,
                             variant="primary",
                             size="lg",
                             min_width=120
                         )
                     with gr.Column(scale=1):
-                        refresh_button = gr.Button(
-                            "刷新二维码",
+                        restart_button = gr.Button(
+                            "重启服务",
                             visible=False,
-                            variant="primary",
+                            variant="secondary",
+                            size="lg",
+                            min_width=120
+                        )
+                    with gr.Column(scale=1):
+                        logout_button = gr.Button(
+                            "退出登录",
+                            visible=True,
+                            variant="secondary",
                             size="lg",
                             min_width=120
                         )
@@ -326,6 +373,8 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
         outputs=[
             login_status,
             refresh_button,
+            restart_button,
+            logout_button,
             qrcode_image,
             user_avatar
         ]
@@ -334,8 +383,18 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
     
     refresh_button.click(get_qrcode_image, outputs=qrcode_image)
     
-    # TODO: 增加退出登录按钮
-    
+    logout_button.click(
+        logout,
+        outputs=[
+            login_status,
+            refresh_button,
+            restart_button,
+            logout_button,
+            qrcode_image,
+            user_avatar
+        ]
+    )
+
     # TODO: 退出与重启需要二次确认
 
 if __name__ == "__main__":
