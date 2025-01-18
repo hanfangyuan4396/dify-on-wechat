@@ -225,7 +225,7 @@ def login(username, password):
             gr.update(visible=False)  # Hide control group
         )
 
-with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft()) as demo:
+with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.themes.sizes.radius_lg)) as demo:
     # 顶部状态栏
     with gr.Row(equal_height=True):
         with gr.Column(scale=1):
