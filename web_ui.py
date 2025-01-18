@@ -500,8 +500,6 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
         ]
     )
 
-    # TODO: 退出与重启需要二次确认
-
 if __name__ == "__main__":
     start_run()
     demo.launch(server_name="0.0.0.0", server_port=conf().get("web_ui_port", 7860))
