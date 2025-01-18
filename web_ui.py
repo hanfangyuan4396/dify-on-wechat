@@ -15,8 +15,11 @@ from plugins import *
 logger = getLogger(__name__)
 current_process_instance = None
 
-def get_gewechat_profile():
-    """获取gewechat用户信息并下载头像，仅在用户在线时返回信息"""
+def check_gewechat_online():
+    """检查gewechat用户是否在线
+    Returns:
+        tuple: (是否在线, 错误信息)
+    """
     try:
         from lib.gewechat.client import GewechatClient
         base_url = conf().get("gewechat_base_url")
@@ -24,13 +27,35 @@ def get_gewechat_profile():
         app_id = conf().get("gewechat_app_id")
         
         client = GewechatClient(base_url, token)
-        
-        # 首先检查是否在线, TODO: 检查是否在线拆分为一个函数
         online_status = client.check_online(app_id)
-        if not online_status or not online_status.get('data', False):
+        
+        if not online_status:
+            return False, "获取在线状态失败"
+            
+        if not online_status.get('data', False):
             logger.info("Gewechat用户未在线")
+            return False, "用户未登录"
+            
+        return True, None
+        
+    except Exception as e:
+        logger.error(f"检查gewechat在线状态失败: {str(e)}")
+        return False, f"检查在线状态出错: {str(e)}"
+
+def get_gewechat_profile():
+    """获取gewechat用户信息并下载头像，仅在用户在线时返回信息"""
+    try:
+        is_online, error_msg = check_gewechat_online()
+        if not is_online:
+            logger.info(f"Gewechat状态检查: {error_msg}")
             return None, None
             
+        from lib.gewechat.client import GewechatClient
+        base_url = conf().get("gewechat_base_url")
+        token = conf().get("gewechat_token")
+        app_id = conf().get("gewechat_app_id")
+        
+        client = GewechatClient(base_url, token)
         profile = client.get_profile(app_id)
         
         if not profile or 'data' not in profile:
