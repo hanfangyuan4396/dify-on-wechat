@@ -128,23 +128,49 @@ def start_run():
     
     current_process_instance = Process(target=run)
     current_process_instance.start()
-    time.sleep(10)  # 等待进程启动
+    time.sleep(15)  # 等待进程启动
     load_config()
     # 重启后获取用户状态
     if not current_process_instance.is_alive():
-        return "重启失败❌ 请检查日志"
+        return (
+            gr.update(value="重启失败❌ 请检查日志"),
+            gr.update(visible=False),
+            gr.update(visible=False),
+            gr.update(visible=False)
+        )
         
-    status_text = "重启成功😀 "
     if conf().get("channel_type") == "gewechat":
         nickname, _ = get_gewechat_profile()
         if nickname:
-            status_text = status_text + f"[{nickname}]🤖  已在线✅"
+            return (
+                gr.update(value=f"重启成功😀 [{nickname}]🤖  已在线✅"),
+                gr.update(visible=False),
+                gr.update(visible=False),
+                gr.update(visible=True, value=get_avatar_image())
+            )
         else:
-            status_text = "重启成功😀 但用户未登录❗"
-    return status_text
-
+            return (
+                gr.update(value="重启成功😀 但用户未登录❗"),
+                gr.update(visible=True),
+                gr.update(visible=True, value=get_qrcode_image()),
+                gr.update(visible=False)
+            )
+    return (
+        gr.update(value="重启成功😀"),
+        gr.update(visible=True),
+        gr.update(visible=True, value=get_qrcode_image()),
+        gr.update(visible=False)
+    )
+    
 def get_qrcode_image():
     image_path = 'tmp/login.png'
+    if os.path.exists(image_path):
+        return image_path
+    else:
+        return None
+
+def get_avatar_image():
+    image_path = 'tmp/avatar.png'
     if os.path.exists(image_path):
         return image_path
     else:
@@ -269,6 +295,7 @@ with gr.Blocks(title="DoW Web UI", theme=gr.themes.Soft()) as demo:
                     height=450
                 )
                 user_avatar = gr.Image(
+                    value=get_avatar_image(),
                     label="当前登录用户",
                     show_label=True,
                     container=True,
@@ -294,20 +321,22 @@ with gr.Blocks(title="DoW Web UI", theme=gr.themes.Soft()) as demo:
         ]
     )
 
-    # TODO: 更新显示二维码的状态
     restart_button.click(
         start_run,
-        outputs=login_status
+        outputs=[
+            login_status,
+            refresh_button,
+            qrcode_image,
+            user_avatar
+        ]
     )
 
     
     refresh_button.click(get_qrcode_image, outputs=qrcode_image)
     
-    # TODO: 增加退出按钮
+    # TODO: 增加退出登录按钮
     
     # TODO: 退出与重启需要二次确认
-    
-    
 
 if __name__ == "__main__":
     start_run()
