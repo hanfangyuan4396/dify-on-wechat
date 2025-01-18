@@ -25,7 +25,7 @@ def get_gewechat_profile():
         
         client = GewechatClient(base_url, token)
         
-        # 首先检查是否在线
+        # 首先检查是否在线, TODO: 检查是否在线拆分为一个函数
         online_status = client.check_online(app_id)
         if not online_status or not online_status.get('data', False):
             logger.info("Gewechat用户未在线")
@@ -104,14 +104,18 @@ def start_run():
     current_process_instance = Process(target=run)
     current_process_instance.start()
     time.sleep(10)  # 等待进程启动
-    
+    load_config()
     # 重启后获取用户状态
-    status_text = "重启成功"
+    if not current_process_instance.is_alive():
+        return "重启失败❌ 请检查日志"
+        
+    status_text = "重启成功😀 "
     if conf().get("channel_type") == "gewechat":
         nickname, _ = get_gewechat_profile()
         if nickname:
-            status_text = status_text + f" 用户 [{nickname}] 已在线"
-            
+            status_text = status_text + f"[{nickname}]🤖  已在线✅"
+        else:
+            status_text = "重启成功😀 但用户未登录❗"
     return status_text
 
 def get_qrcode_image():
@@ -142,7 +146,7 @@ def login(username, password):
         show_qrcode = not (is_gewechat and avatar_path)
         
         # 设置状态信息
-        status_text = "启动成功" + (f" 用户 [{nickname}] 已在线" if nickname else "")
+        status_text = "启动成功😀 " + (f"[{nickname}]🤖  已在线✅" if nickname else "")
             
         return (
             gr.update(visible=True, value=status_text),  # 在顶部状态栏显示状态
@@ -213,7 +217,7 @@ with gr.Blocks(title="DoW Web UI", theme=gr.themes.Soft()) as demo:
                 with gr.Row(equal_height=True, variant="panel"):
                     with gr.Column(scale=1):
                         restart_button = gr.Button(
-                            "🔄 重启服务",
+                            "重启服务",
                             visible=False,
                             variant="primary",
                             size="lg",
@@ -221,7 +225,7 @@ with gr.Blocks(title="DoW Web UI", theme=gr.themes.Soft()) as demo:
                         )
                     with gr.Column(scale=1):
                         refresh_button = gr.Button(
-                            "🔄 刷新二维码",
+                            "刷新二维码",
                             visible=False,
                             variant="primary",
                             size="lg",
@@ -265,14 +269,21 @@ with gr.Blocks(title="DoW Web UI", theme=gr.themes.Soft()) as demo:
         ]
     )
 
+    # TODO: 更新显示二维码的状态
     restart_button.click(
         start_run,
         outputs=login_status
     )
 
+    
     refresh_button.click(get_qrcode_image, outputs=qrcode_image)
+    
+    # TODO: 增加退出按钮
+    
+    # TODO: 退出与重启需要二次确认
+    
+    
 
 if __name__ == "__main__":
     start_run()
-    load_config()
     demo.launch(server_name="0.0.0.0", server_port=conf().get("web_ui_port", 7860))
