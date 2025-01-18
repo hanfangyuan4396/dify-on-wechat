@@ -239,7 +239,27 @@ with gr.Blocks(title="DoW Web UI", theme=gr.themes.Soft()) as demo:
     
     # 主要内容区
     with gr.Row(equal_height=True):
-        # 左侧控制区
+        # 左侧图片区
+        with gr.Column(scale=4):
+            with gr.Column(variant="box"):
+                qrcode_image = gr.Image(
+                    value=get_qrcode_image(),
+                    label="微信登录二维码",
+                    show_label=True,
+                    container=True,
+                    visible=False,
+                    height=450
+                )
+                user_avatar = gr.Image(
+                    value=get_avatar_image(),
+                    label="当前登录用户",
+                    show_label=True,
+                    container=True,
+                    visible=False,
+                    height=450
+                )
+
+        # 右侧控制区
         with gr.Column(scale=3, min_width=300):
             # 登录表单
             with gr.Column(visible=True) as login_form:
@@ -282,26 +302,6 @@ with gr.Blocks(title="DoW Web UI", theme=gr.themes.Soft()) as demo:
                             size="lg",
                             min_width=120
                         )
-        
-        # 右侧图片区
-        with gr.Column(scale=4):
-            with gr.Column(variant="box"):
-                qrcode_image = gr.Image(
-                    value=get_qrcode_image(),
-                    label="微信登录二维码",
-                    show_label=True,
-                    container=True,
-                    visible=False,
-                    height=450
-                )
-                user_avatar = gr.Image(
-                    value=get_avatar_image(),
-                    label="当前登录用户",
-                    show_label=True,
-                    container=True,
-                    visible=False,
-                    height=450
-                )
 
     # 事件处理
     login_button.click(
