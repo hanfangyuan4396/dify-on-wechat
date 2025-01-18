@@ -278,6 +278,20 @@ def cancel_logout():
         gr.update(visible=True)    # 显示控制按钮组
     )
 
+def show_restart_confirm():
+    """显示重启确认对话框"""
+    return (
+        gr.update(visible=True),  # 显示确认对话框
+        gr.update(visible=False)  # 隐藏控制按钮组
+    )
+
+def cancel_restart():
+    """取消重启"""
+    return (
+        gr.update(visible=False),  # 隐藏确认对话框
+        gr.update(visible=True)    # 显示控制按钮组
+    )
+
 with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.themes.sizes.radius_lg)) as demo:
     # 顶部状态栏
     with gr.Row(equal_height=True):
@@ -370,12 +384,29 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
             gr.Markdown("### 确认退出")
             gr.Markdown("确定要退出登录吗？")
             with gr.Row():
-                confirm_button = gr.Button(
+                logout_confirm_button = gr.Button(
                     "确认退出",
                     variant="primary",
                     size="sm"
                 )
-                cancel_button = gr.Button(
+                logout_cancel_button = gr.Button(
+                    "取消",
+                    variant="secondary",
+                    size="sm"
+                )
+
+    # 重启确认对话框
+    with gr.Column(visible=False) as restart_confirm:
+        with gr.Column(variant="box"):
+            gr.Markdown("### 确认重启")
+            gr.Markdown("确定要重启服务吗？")
+            with gr.Row():
+                restart_confirm_button = gr.Button(
+                    "确认重启",
+                    variant="primary",
+                    size="sm"
+                )
+                restart_cancel_button = gr.Button(
                     "取消",
                     variant="secondary",
                     size="sm"
@@ -400,6 +431,22 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
     )
 
     restart_button.click(
+        show_restart_confirm,
+        outputs=[
+            restart_confirm,
+            control_group
+        ]
+    )
+    
+    restart_cancel_button.click(
+        cancel_restart,
+        outputs=[
+            restart_confirm,
+            control_group
+        ]
+    )
+    
+    restart_confirm_button.click(
         start_run,
         outputs=[
             login_status,
@@ -409,9 +456,14 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
             qrcode_image,
             user_avatar
         ]
+    ).then(
+        cancel_restart,  # 重启后关闭确认对话框
+        outputs=[
+            restart_confirm,
+            control_group
+        ]
     )
 
-    
     refresh_button.click(get_qrcode_image, outputs=qrcode_image)
     
     logout_button.click(
@@ -422,7 +474,7 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
         ]
     )
     
-    cancel_button.click(
+    logout_cancel_button.click(
         cancel_logout,
         outputs=[
             logout_confirm,
@@ -430,7 +482,7 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
         ]
     )
     
-    confirm_button.click(
+    logout_confirm_button.click(
         logout,
         outputs=[
             login_status,
