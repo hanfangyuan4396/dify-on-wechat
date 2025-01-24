@@ -140,7 +140,8 @@ def start_run():
         return (
             gr.update(value="重启失败❌ 请重试"), # 状态
             gr.update(visible=False), # 刷新按钮
-            gr.update(visible=False), # 重启按钮
+            gr.update(visible=False), # 刷新状态按钮
+            gr.update(visible=True, variant="secondary"), # 重启按钮
             gr.update(visible=False), # 退出按钮
             gr.update(visible=False), # 二维码
             gr.update(visible=False)  # 头像
@@ -152,7 +153,8 @@ def start_run():
             return (
                 gr.update(value=f"重启成功😀 [{nickname}]🤖  已在线✅"), # 状态
                 gr.update(visible=False), # 刷新二维码按钮
-                gr.update(visible=True), # 重启按钮
+                gr.update(visible=True), # 刷新状态按钮
+                gr.update(visible=True, variant="secondary"), # 重启按钮
                 gr.update(visible=True), # 退出按钮
                 gr.update(visible=False), # 二维码
                 gr.update(visible=True, value=get_avatar_image()) # 头像
@@ -161,7 +163,8 @@ def start_run():
             return (
                 gr.update(value="重启成功😀 但用户未登录❗"), # 状态
                 gr.update(visible=True), # 刷新二维码按钮
-                gr.update(visible=True), # 重启按钮
+                gr.update(visible=True), # 刷新状态按钮
+                gr.update(visible=True, variant="secondary"), # 重启按钮
                 gr.update(visible=False),# 退出按钮
                 gr.update(visible=True, value=get_qrcode_image()), # 二维码
                 gr.update(visible=False) # 头像
@@ -169,7 +172,8 @@ def start_run():
     return (
         gr.update(value="重启成功😀"), # 状态
         gr.update(visible=True), # 刷新二维码按钮
-        gr.update(visible=True), # 重启按钮
+        gr.update(visible=False), # 刷新状态按钮
+        gr.update(visible=True, variant="secondary"), # 重启按钮
         gr.update(visible=False), # 退出按钮
         gr.update(visible=True, value=get_qrcode_image()), # 二维码
         gr.update(visible=False) # 头像
@@ -241,12 +245,13 @@ def login(username, password):
 def logout():
     """退出登录
     Returns:
-        tuple: (状态文本, 刷新按钮, 重启按钮, 退出按钮, 二维码, 头像)
+        tuple: (状态文本, 刷新按钮, 刷新状态按钮, 重启按钮, 退出按钮, 二维码, 头像)
     """
     if conf().get("channel_type") != "gewechat" or not check_gewechat_online()[0]:
         return (
             gr.update(value="非gewechat或不在线，无需退出"), # 状态
             gr.update(visible=True, variant="primary"), # 刷新按钮
+            gr.update(visible=True, variant="primary"), # 刷新状态按钮
             gr.update(visible=True), # 重启按钮
             gr.update(visible=False), # 退出按钮
             gr.update(visible=True, value=get_qrcode_image()), # 二维码
@@ -258,6 +263,7 @@ def logout():
     return (
         gr.update(value="已退出登录，点击重启服务按钮可重新登录"), # 状态
         gr.update(visible=False), # 刷新按钮
+        gr.update(visible=False), # 刷新状态按钮
         gr.update(visible=True, variant="primary"), # 重启按钮
         gr.update(visible=False), # 退出按钮
         gr.update(visible=False), # 二维码
@@ -291,6 +297,33 @@ def cancel_restart():
         gr.update(visible=False),  # 隐藏确认对话框
         gr.update(visible=True)    # 显示控制按钮组
     )
+
+def check_status():
+    """检查状态并返回更新信息
+    Returns:
+        tuple: (状态文本, 是否显示二维码, 头像)
+    """
+    is_gewechat = conf().get("channel_type") == "gewechat"
+    if not is_gewechat:
+        return (
+            gr.update(value="非gewechat，无需检查登录状态"),
+            gr.update(visible=True),
+            gr.update(visible=False)
+        )
+        
+    nickname, avatar_path = get_gewechat_profile()
+    if nickname:
+        return (
+            gr.update(value=f"[{nickname}]🤖  已在线✅"),
+            gr.update(visible=False),
+            gr.update(value=avatar_path, visible=True)
+        )
+    else:
+        return (
+            gr.update(value="用户未登录❗"),
+            gr.update(visible=True),
+            gr.update(visible=False)
+        )
 
 with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.themes.sizes.radius_lg)) as demo:
     # 顶部状态栏
@@ -357,6 +390,14 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
                         refresh_button = gr.Button(
                             "刷新二维码",
                             visible=False,
+                            variant="primary",
+                            size="lg",
+                            min_width=120
+                        )
+                    with gr.Column(scale=1):
+                        check_status_button = gr.Button(  # 新增刷新状态按钮
+                            "刷新登录状态",
+                            visible=True,
                             variant="primary",
                             size="lg",
                             min_width=120
@@ -451,6 +492,7 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
         outputs=[
             login_status,
             refresh_button,
+            check_status_button,
             restart_button,
             logout_button,
             qrcode_image,
@@ -487,6 +529,7 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
         outputs=[
             login_status,
             refresh_button,
+            check_status_button,
             restart_button,
             logout_button,
             qrcode_image,
@@ -497,6 +540,16 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
         outputs=[
             logout_confirm,
             control_group
+        ]
+    )
+
+    # 添加刷新状态按钮事件
+    check_status_button.click(
+        check_status,
+        outputs=[
+            login_status,
+            qrcode_image,
+            user_avatar
         ]
     )
 
