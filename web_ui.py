@@ -298,15 +298,22 @@ def cancel_restart():
         gr.update(visible=True)    # 显示控制按钮组
     )
 
-def check_status():
-    """检查状态并返回更新信息
+def refresh_qrcode():
+    """刷新二维码"""
+    return (
+        gr.update(value="二维码刷新成功😀"),
+        gr.update(value=get_qrcode_image()),
+    )
+
+def refresh_login_status():
+    """检查登录状态并返回更新信息
     Returns:
         tuple: (状态文本, 是否显示二维码, 头像)
     """
     is_gewechat = conf().get("channel_type") == "gewechat"
     if not is_gewechat:
         return (
-            gr.update(value="非gewechat，无需检查登录状态"),
+            gr.update(value="登录状态刷新成功😀 非gewechat，无需检查登录状态"),
             gr.update(visible=True),
             gr.update(visible=False)
         )
@@ -314,13 +321,13 @@ def check_status():
     nickname, avatar_path = get_gewechat_profile()
     if nickname:
         return (
-            gr.update(value=f"[{nickname}]🤖  已在线✅"),
+            gr.update(value=f"登录状态刷新成功😀 [{nickname}]🤖  已在线✅"),
             gr.update(visible=False),
             gr.update(value=avatar_path, visible=True)
         )
     else:
         return (
-            gr.update(value="用户未登录❗"),
+            gr.update(value="登录状态刷新成功😀 用户未登录❗"),
             gr.update(visible=True),
             gr.update(visible=False)
         )
@@ -387,7 +394,7 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
             with gr.Column(visible=False) as control_group:
                 with gr.Row(equal_height=True, variant="panel"):
                     with gr.Column(scale=1):
-                        refresh_button = gr.Button(
+                        refresh_qrcode_button = gr.Button(
                             "刷新二维码",
                             visible=False,
                             variant="primary",
@@ -395,7 +402,7 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
                             min_width=120
                         )
                     with gr.Column(scale=1):
-                        check_status_button = gr.Button(  # 新增刷新状态按钮
+                        refresh_login_status_button = gr.Button(
                             "刷新登录状态",
                             visible=True,
                             variant="primary",
@@ -461,7 +468,7 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
             login_status,
             qrcode_image,
             restart_button,
-            refresh_button,
+            refresh_qrcode_button,
             username_input,
             password_input,
             login_button,
@@ -491,8 +498,8 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
         start_run,
         outputs=[
             login_status,
-            refresh_button,
-            check_status_button,
+            refresh_qrcode_button,
+            refresh_login_status_button,
             restart_button,
             logout_button,
             qrcode_image,
@@ -506,7 +513,13 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
         ]
     )
 
-    refresh_button.click(get_qrcode_image, outputs=qrcode_image)
+    refresh_qrcode_button.click(
+        refresh_qrcode,
+        outputs=[
+            login_status,
+            qrcode_image
+        ]
+    )
     
     logout_button.click(
         show_logout_confirm,
@@ -528,8 +541,8 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
         logout,
         outputs=[
             login_status,
-            refresh_button,
-            check_status_button,
+            refresh_qrcode_button,
+            refresh_login_status_button,
             restart_button,
             logout_button,
             qrcode_image,
@@ -544,8 +557,8 @@ with gr.Blocks(title="Dify on WeChat", theme=gr.themes.Soft(radius_size=gr.theme
     )
 
     # 添加刷新状态按钮事件
-    check_status_button.click(
-        check_status,
+    refresh_login_status_button.click(
+        refresh_login_status,
         outputs=[
             login_status,
             qrcode_image,
