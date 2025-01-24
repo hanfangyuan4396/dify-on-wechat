@@ -247,28 +247,71 @@ def logout():
     Returns:
         tuple: (状态文本, 刷新按钮, 刷新状态按钮, 重启按钮, 退出按钮, 二维码, 头像)
     """
-    if conf().get("channel_type") != "gewechat" or not check_gewechat_online()[0]:
+    try:
+        # 检查是否是 gewechat 且在线
+        if conf().get("channel_type") != "gewechat" or not check_gewechat_online()[0]:
+            return (
+                gr.update(value="非gewechat或不在线，无需退出登录😭"), # 状态
+                gr.update(visible=True), # 刷新二维码按钮
+                gr.update(visible=True), # 刷新状态按钮
+                gr.update(visible=True), # 重启按钮
+                gr.update(visible=False), # 退出按钮
+                gr.update(visible=True, value=get_qrcode_image()), # 二维码
+                gr.update(visible=False) # 头像
+            )
+
+        # 调用 gewechat 退出接口
+        from lib.gewechat.client import GewechatClient
+        base_url = conf().get("gewechat_base_url")
+        token = conf().get("gewechat_token")
+        app_id = conf().get("gewechat_app_id")
+        if not all([base_url, token, app_id]):
+            return (
+                gr.update(value="gewechat配置不完整，无法退出登录😭"), # 状态
+                gr.update(visible=False), # 刷新二维码按钮
+                gr.update(visible=True), # 刷新状态按钮
+                gr.update(visible=True), # 重启按钮
+                gr.update(visible=True), # 退出按钮
+                gr.update(visible=False), # 二维码
+                gr.update(visible=True) # 头像
+            )
+        
+        client = GewechatClient(base_url, token)
+        result = client.logout(app_id)
+        
+        if not result or result.get('ret') != 200:
+            logger.error(f"退出登录失败 {result}")
+            return (
+                gr.update(value=f"退出登录失败😭 {result}, 请重试"), # 状态
+                gr.update(visible=False), # 刷新二维码按钮
+                gr.update(visible=True), # 刷新状态按钮
+                gr.update(visible=True), # 重启按钮
+                gr.update(visible=True), # 退出按钮
+                gr.update(visible=False), # 二维码
+                gr.update(visible=True) # 头像
+            )
+
         return (
-            gr.update(value="非gewechat或不在线，无需退出"), # 状态
-            gr.update(visible=True, variant="primary"), # 刷新按钮
-            gr.update(visible=True, variant="primary"), # 刷新状态按钮
-            gr.update(visible=True), # 重启按钮
+            gr.update(value="退出登录成功😀 点击重启服务按钮可重新登录"), # 状态
+            gr.update(visible=False), # 刷新二维码按钮
+            gr.update(visible=False), # 刷新状态按钮
+            gr.update(visible=True, variant="primary"), # 重启按钮
             gr.update(visible=False), # 退出按钮
-            gr.update(visible=True, value=get_qrcode_image()), # 二维码
+            gr.update(visible=False), # 二维码
             gr.update(visible=False) # 头像
         )
-
-    # TODO: 退出登录逻辑
-    time.sleep(5)
-    return (
-        gr.update(value="已退出登录，点击重启服务按钮可重新登录"), # 状态
-        gr.update(visible=False), # 刷新按钮
-        gr.update(visible=False), # 刷新状态按钮
-        gr.update(visible=True, variant="primary"), # 重启按钮
-        gr.update(visible=False), # 退出按钮
-        gr.update(visible=False), # 二维码
-        gr.update(visible=False) # 头像
-    )
+        
+    except Exception as e:
+        logger.error(f"退出登录出错: {str(e)}")
+        return (
+            gr.update(value=f"退出登录失败😭 {str(e)}"), # 状态
+            gr.update(visible=False), # 刷新二维码 按钮
+            gr.update(visible=True), # 刷新状态按钮
+            gr.update(visible=True), # 重启按钮
+            gr.update(visible=True), # 退出按钮
+            gr.update(visible=False), # 二维码
+            gr.update(visible=True) # 头像
+        )
 
 def show_logout_confirm():
     """显示退出确认对话框"""
