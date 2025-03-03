@@ -335,6 +335,7 @@ class GeWeChatMessage(ChatMessage):
             self.content = msg['Data']['Content']['string']
         elif msg_type == 34:  # Voice message
             self.ctype = ContextType.VOICE
+            self.content = msg['Data']['Content']['string']
             if 'ImgBuf' in msg['Data'] and 'buffer' in msg['Data']['ImgBuf'] and msg['Data']['ImgBuf']['buffer']:
                 silk_data = base64.b64decode(msg['Data']['ImgBuf']['buffer'])
                 silk_file_name = f"voice_{str(uuid.uuid4())}.silk"
