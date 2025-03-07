@@ -330,6 +330,17 @@ dify图片识别配置如下，另外需要在dify应用中开启图片上传与
 }
 ```
 
+## 10. 支持deepseek
+
+deepseek和openai可以共用一套api lib，，默认model是`deepseek-chat`
+```json
+{
+  "model": "deepseek-chat",  // 或其他Deepseek模型，如"deepseek-chat-v2"
+  "open_ai_api_key": "您的Deepseek API密钥",
+  "open_ai_api_base": "https://api.deepseek.com/v1"
+}
+```
+
 # 更新日志
 - 2025/01/06 修复在微信群中微信账号无法识别命令的bug，感谢[**sofs2005**](https://github.com/sofs2005)贡献的代码
 - 2025/01/04 修复gewechat自动回复公众号等官方账号消息的bug，感谢[**benxiaohai86**](https://github.com/benxiaohai86)提供的过滤思路

@@ -16,6 +16,7 @@ QWEN_DASHSCOPE = "dashscope"  # 通义新版sdk和api key
 GEMINI = "gemini"  # gemini-1.0-pro
 MOONSHOT = "moonshot"
 MiniMax = "minimax"
+DEEPSEEK = "deepseek"  # Deepseek模型
 
 
 # model
