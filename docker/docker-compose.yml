@@ -50,3 +50,5 @@ services:
       # 更多配置请查看 config.py
     ports:
       - "7860:7860"
+    labels:
+      - com.lobechat.watchtower.enable=true

@@ -61,7 +61,7 @@ def get_qrcode_image():
 
 def verify_login(username, password):
     correct_username = conf().get("web_ui_username", "dow")
-    correct_password = conf().get("web_ui_password", "dify-on-wechat")
+    correct_password = conf().get("web_ui_password", "123")
     if username == correct_username and password == correct_password:
         return True
     return False
