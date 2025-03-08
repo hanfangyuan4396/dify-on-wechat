@@ -10,6 +10,7 @@ class ContextType(Enum):
     FILE = 4  # 文件信息
     VIDEO = 5  # 视频信息
     SHARING = 6  # 分享信息
+    EMOJI=7  #表情图片
 
     IMAGE_CREATE = 10  # 创建图片命令
     ACCEPT_FRIEND = 19 # 同意好友请求
@@ -17,6 +18,9 @@ class ContextType(Enum):
     PATPAT = 21  # 拍了拍
     FUNCTION = 22  # 函数调用
     EXIT_GROUP = 23 #退出
+
+    NON_USER_MSG = 30  # 来自公众号、腾讯游戏、微信团队等非用户账号的消息
+    STATUS_SYNC  = 51   # 微信客户端的状态同步消息，可以忽略 eggs: 打开/退出某个聊天窗口
 
 
     def __str__(self):
@@ -47,7 +51,7 @@ class Context:
 
     def get(self, key, default=None):
         try:
-            return self[key]
+            return self.__getitem__(key)
         except KeyError:
             return default
 

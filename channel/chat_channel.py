@@ -56,6 +56,7 @@ class ChatChannel(Channel):
             if context.get("isgroup", False):
                 group_name = cmsg.other_user_nickname
                 group_id = cmsg.other_user_id
+                context["group_name"] = group_name
 
                 group_name_white_list = config.get("group_name_white_list", [])
                 group_name_keyword_white_list = config.get("group_name_keyword_white_list", [])
@@ -67,7 +68,8 @@ class ChatChannel(Channel):
                         ]
                 ):
                     group_chat_in_one_session = conf().get("group_chat_in_one_session", [])
-                    session_id = cmsg.actual_user_id
+                    session_id = f"{cmsg.actual_user_id}@@{group_id}" # 当群聊未共享session时，session_id为user_id与group_id的组合，用于区分不同群聊以及单聊
+                    context["is_shared_session_group"] = False  # 默认为非共享会话群
                     if any(
                             [
                                 group_name in group_chat_in_one_session,
@@ -75,6 +77,7 @@ class ChatChannel(Channel):
                             ]
                     ):
                         session_id = group_id
+                        context["is_shared_session_group"] = True  # 如果是共享会话群，设置为True
                 else:
                     logger.debug(f"No need reply, groupName not in whitelist, group_name={group_name}")
                     return None
@@ -83,8 +86,7 @@ class ChatChannel(Channel):
             else:
                 context["session_id"] = cmsg.other_user_id
                 context["receiver"] = cmsg.other_user_id
-            e_context = PluginManager().emit_event(
-                EventContext(Event.ON_RECEIVE_MESSAGE, {"channel": self, "context": context}))
+            e_context = PluginManager().emit_event(EventContext(Event.ON_RECEIVE_MESSAGE, {"channel": self, "context": context}))
             context = e_context["context"]
             if e_context.is_pass() or context is None:
                 return context
@@ -94,11 +96,6 @@ class ChatChannel(Channel):
 
         # 消息内容匹配过程，并处理content
         if ctype == ContextType.TEXT:
-            if first_in and "」\n- - - - - - -" in content:  # 初次匹配 过滤引用消息
-                logger.debug(content)
-                logger.debug("[chat_channel]reference query skipped")
-                return None
-
             nick_name_black_list = conf().get("nick_name_black_list", [])
             if context.get("isgroup", False):  # 群聊
                 # 校验关键字
@@ -146,6 +143,9 @@ class ChatChannel(Channel):
                 match_prefix = check_prefix(content, conf().get("single_chat_prefix", [""]))
                 if match_prefix is not None:  # 判断如果匹配到自定义前缀，则返回过滤掉前缀+空格后的内容
                     content = content.replace(match_prefix, "", 1).strip()
+                elif self.channel_type == 'wechatcom_app':
+                    # todo:企业微信自建应用不需要前导字符
+                    pass
                 elif context["origin_ctype"] == ContextType.VOICE:  # 如果源消息是私聊的语音消息，允许不匹配前缀，放宽条件
                     pass
                 else:
@@ -261,7 +261,7 @@ class ChatChannel(Channel):
                         reply = super().build_text_to_voice(reply.content)
                         return self._decorate_reply(context, reply)
                     if context.get("isgroup", False):
-                        if not context.get("no_need_at", False):
+                        if not conf().get("no_need_at", False):
                             reply_text = "@" + context["msg"].actual_user_nickname + "\n" + reply_text.strip()
                         reply_text = conf().get("group_chat_reply_prefix", "") + reply_text + conf().get(
                             "group_chat_reply_suffix", "")
@@ -360,24 +360,27 @@ class ChatChannel(Channel):
         while True:
             with self.lock:
                 session_ids = list(self.sessions.keys())
-                for session_id in session_ids:
+            for session_id in session_ids:
+                with self.lock:
                     context_queue, semaphore = self.sessions[session_id]
-                    if semaphore.acquire(blocking=False):  # 等线程处理完毕才能删除
-                        if not context_queue.empty():
-                            context = context_queue.get()
-                            logger.debug("[chat_channel] consume context: {}".format(context))
-                            future: Future = handler_pool.submit(self._handle, context)
-                            future.add_done_callback(self._thread_pool_callback(session_id, context=context))
+                if semaphore.acquire(blocking=False):  # 等线程处理完毕才能删除
+                    if not context_queue.empty():
+                        context = context_queue.get()
+                        logger.debug("[chat_channel] consume context: {}".format(context))
+                        future: Future = handler_pool.submit(self._handle, context)
+                        future.add_done_callback(self._thread_pool_callback(session_id, context=context))
+                        with self.lock:
                             if session_id not in self.futures:
                                 self.futures[session_id] = []
                             self.futures[session_id].append(future)
-                        elif semaphore._initial_value == semaphore._value + 1:  # 除了当前，没有任务再申请到信号量，说明所有任务都处理完毕
+                    elif semaphore._initial_value == semaphore._value + 1:  # 除了当前，没有任务再申请到信号量，说明所有任务都处理完毕
+                        with self.lock:
                             self.futures[session_id] = [t for t in self.futures[session_id] if not t.done()]
                             assert len(self.futures[session_id]) == 0, "thread pool error"
                             del self.sessions[session_id]
-                        else:
-                            semaphore.release()
-            time.sleep(0.1)
+                    else:
+                        semaphore.release()
+            time.sleep(0.2)
 
     # 取消session_id对应的所有任务，只能取消排队的消息和已提交线程池但未执行的任务
     def cancel_session(self, session_id):

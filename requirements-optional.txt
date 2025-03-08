@@ -11,6 +11,7 @@ edge-tts # edge-tts
 numpy<=1.24.2
 langid # language detect
 elevenlabs==1.0.3 # elevenlabs TTS
+pilk==0.2.4 # process wechat silk file
 
 #install plugin
 dulwich
@@ -43,7 +44,7 @@ dingtalk_stream
 zhipuai>=2.0.1
 
 # webui
-gradio==4.37.2
-gradio_client==1.0.2
+gradio==5.12.0
+gradio_client==1.5.4
 # tongyi qwen new sdk
 dashscope

@@ -21,6 +21,9 @@ def create_channel(channel_type) -> Channel:
     elif channel_type == "terminal":
         from channel.terminal.terminal_channel import TerminalChannel
         ch = TerminalChannel()
+    elif channel_type == 'web':
+        from channel.web.web_channel import WebChannel
+        ch = WebChannel()
     elif channel_type == "wechatmp":
         from channel.wechatmp.wechatmp_channel import WechatMPChannel
         ch = WechatMPChannel(passive_reply=True)
@@ -42,6 +45,9 @@ def create_channel(channel_type) -> Channel:
     elif channel_type == const.DINGTALK:
         from channel.dingtalk.dingtalk_channel import DingTalkChanel
         ch = DingTalkChanel()
+    elif channel_type == "gewechat":
+        from channel.gewechat.gewechat_channel import GeWeChatChannel
+        ch = GeWeChatChannel()
     else:
         raise RuntimeError
     ch.channel_type = channel_type

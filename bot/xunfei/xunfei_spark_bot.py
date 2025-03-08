@@ -3,7 +3,7 @@
 import requests, json
 from bot.bot import Bot
 from bot.session_manager import SessionManager
-from bot.baidu.baidu_wenxin_session import BaiduWenxinSession
+from bot.chatgpt.chat_gpt_session import ChatGPTSession
 from bridge.context import ContextType, Context
 from bridge.reply import Reply, ReplyType
 from common.log import logger
@@ -41,7 +41,7 @@ class XunFeiBot(Bot):
         self.api_key = conf().get("xunfei_api_key")
         self.api_secret = conf().get("xunfei_api_secret")
         # 默认使用v2.0版本: "generalv2"
-        # Spark Lite请求地址(spark_url): wss://spark-api.xf-yun.com/v1.1/chat, 对应的domain参数为: "general"
+        # Spark Lite请求地址(spark_url): wss://spark-api.xf-yun.com/v1.1/chat, 对应的domain参数为: "lite"
         # Spark V2.0请求地址(spark_url): wss://spark-api.xf-yun.com/v2.1/chat, 对应的domain参数为: "generalv2"
         # Spark Pro 请求地址(spark_url): wss://spark-api.xf-yun.com/v3.1/chat, 对应的domain参数为: "generalv3"
         # Spark Pro-128K请求地址(spark_url):  wss://spark-api.xf-yun.com/chat/pro-128k, 对应的domain参数为: "pro-128k"
@@ -53,7 +53,7 @@ class XunFeiBot(Bot):
         self.host = urlparse(self.spark_url).netloc
         self.path = urlparse(self.spark_url).path
         # 和wenxin使用相同的session机制
-        self.sessions = SessionManager(BaiduWenxinSession, model=const.XUNFEI)
+        self.sessions = SessionManager(ChatGPTSession, model=const.XUNFEI)
 
     def reply(self, query, context: Context = None) -> Reply:
         if context.type == ContextType.TEXT:

@@ -34,6 +34,7 @@ available_setting = {
     "single_chat_reply_suffix": "",  # 私聊时自动回复的后缀，\n 可以换行
     "accept_friend_commands": ["加好友"],  # 自动接受好友请求的申请信息
     "group_chat_prefix": ["@bot"],  # 群聊时包含该前缀则会触发机器人回复
+    "no_need_at": False,  # 群聊回复时是否不需要艾特
     "group_chat_reply_prefix": "",  # 群聊时自动回复的前缀
     "group_chat_reply_suffix": "",  # 群聊时自动回复的后缀，\n 可以换行
     "group_chat_keyword": [],  # 群聊时包含该关键词则会触发机器人回复
@@ -78,6 +79,7 @@ available_setting = {
     "baidu_wenxin_model": "eb-instant",  # 默认使用ERNIE-Bot-turbo模型
     "baidu_wenxin_api_key": "",  # Baidu api key
     "baidu_wenxin_secret_key": "",  # Baidu secret key
+    "baidu_wenxin_prompt_enabled": False,  # Enable prompt if you are using ernie character model
     # 讯飞星火API
     "xunfei_app_id": "",  # 讯飞应用ID
     "xunfei_api_key": "",  # 讯飞 API key
@@ -102,12 +104,14 @@ available_setting = {
     # dify配置
     "dify_api_base": "https://api.dify.ai/v1",
     "dify_api_key": "app-xxx",
-    "dify_app_type": "chatbot", # dify助手类型 chatbot(对应聊天助手)/agent(对应Agent)/workflow(对应工作流)，默认为chatbot
+    "dify_app_type": "chatbot", # dify助手类型 chatbot(对应聊天助手或对话流)/agent(对应Agent)/workflow(对应工作流，则默认为chatbot
     "dify_conversation_max_messages": 5, # dify目前不支持设置历史消息长度，暂时使用超过最大消息数清空会话的策略，缺点是没有滑动窗口，会突然丢失历史消息，当设置的值小于等于0，则不限制历史消息长度
+    "dify_error_reply": "", # dify bot错误时给用户的回复
     # coze配置
-    "coze_api_base": "https://api.coze.cn/open_api/v2",
+    "coze_api_base": "https://api.coze.cn",
     "coze_api_key": "xxx",
     "coze_bot_id": "xxx",
+    "coze_return_show_img": "false",
     # wework的通用配置
     "wework_smart": True,  # 配置wework是否使用已登录的企业微信，False为多开
     # 语音设置
@@ -170,6 +174,12 @@ available_setting = {
     "dingtalk_client_id": "",  # 钉钉机器人Client ID 
     "dingtalk_client_secret": "",  # 钉钉机器人Client Secret
     "dingtalk_card_enabled": False,
+    ## gewechat配置
+    "gewechat_base_url": "",
+    "gewechat_download_url": "",
+    "gewechat_token": "",
+    "gewechat_app_id": "",
+    "gewechat_callback_url": "", # 回调地址，示例：http://172.17.0.1:9919/v2/api/callback/collect
     
     # chatgpt指令自定义触发词
     "clear_memory_commands": ["#清除记忆"],  # 重置会话指令，必须以#开头
@@ -197,6 +207,7 @@ available_setting = {
     "Minimax_api_key": "",
     "Minimax_group_id": "",
     "Minimax_base_url": "",
+    "web_port": 9899,
 }
 
 
@@ -225,6 +236,12 @@ class Config(dict):
             return self[key]
         except KeyError as e:
             return default
+        except Exception as e:
+            raise e
+            
+    def set(self, key, value):
+        try:
+            self[key] = value
         except Exception as e:
             raise e
 
@@ -318,6 +335,19 @@ def load_config():
 
     config.load_user_datas()
 
+def save_config():
+    global config
+    config_path = "./config.json"
+    try:
+        config_dict = dict(config)  # 将Config对象转换为普通字典
+        # 创建一个按键排序的有序字典
+        sorted_config = {key: config_dict[key] for key in sorted(config_dict.keys())}
+        with open(config_path, "w", encoding="utf-8") as f:
+            json.dump(sorted_config, f, indent=4, ensure_ascii=False)
+            logger.info("[Config] Configuration saved.")
+    except Exception as e:
+        logger.error(f"[Config] Save configuration error: {e}")
+
 
 def get_root():
     return os.path.dirname(os.path.abspath(__file__))
@@ -359,6 +389,14 @@ def write_plugin_config(pconf: dict):
     for k in pconf:
         plugin_config[k.lower()] = pconf[k]
 
+def remove_plugin_config(name: str):
+    """
+    移除待重新加载的插件全局配置
+    :param name: 待重载的插件名
+    """
+    global plugin_config
+    plugin_config.pop(name.lower(), None)
+
 
 def pconf(plugin_name: str) -> dict:
     """
@@ -366,7 +404,8 @@ def pconf(plugin_name: str) -> dict:
     :param plugin_name: 插件名称
     :return: 该插件的配置项
     """
-    return plugin_config.get(plugin_name.lower())
+    # 如果插件名称作为key获取不到，则尝试使用小写名称
+    return plugin_config.get(plugin_name) or plugin_config.get(plugin_name.lower())
 
 
 # 全局配置，用于存放全局生效的状态
