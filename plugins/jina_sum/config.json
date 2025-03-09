@@ -1,0 +1,10 @@
+{
+  "jina_reader_base": "https://r.jina.ai",
+  "open_ai_api_base": "http://101.133.158.80:3600/v1",
+  "open_ai_api_key":  "sk-j3TFb0PuOur8MIMiF22f649d4a1a4564B69dB99388364960",
+  "open_ai_model": "gpt-3.5-turbo",
+  "max_words": 8000,
+  "white_url_list": [],
+  "black_url_list": ["https://support.weixin.qq.com", "https://channels-aladin.wxqcloud.qq.com"],
+  "prompt": "我需要对下面的文本进行总结，总结输出包括以下三个部分：\n📖 一句话总结\n🔑 关键要点,用数字序号列出3-5个文章的核心内容\n🏷 标签: #xx #xx\n请使用emoji让你的表达更生动。"
+}

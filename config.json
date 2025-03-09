@@ -1,0 +1,37 @@
+{
+    "channel_type": "gewechat",
+    "character_desc": "你是小粉宝，你是一位服务乳腺癌患者及家属，提供专业知识和心理支持的AI助手。",
+    "gemini_api_key": "AIzaSyAICGyDd3duwexNcyfWSvFZiws5-b1L3Zg",
+    "gewechat_app_id": "wx_6nWriq9zE1CRsisEHPtwn",
+    "gewechat_base_url": "http://192.168.1.159:2531/v2/api",
+    "gewechat_callback_url": "http://host.docker.internal:9919/v2/api/callback/collect",
+    "gewechat_download_url": "http://192.168.1.159:2532/download",
+    "gewechat_token": "e6b19054f8b647918e0bf20c1cf10f9e",
+    "group_chat_in_one_session": [
+        "小粉宝-复肿乳腺公益助手推动小组"
+    ],
+    "group_chat_prefix": [
+        "xfb",
+        "bb",
+        "BB",
+        "@xfb",
+        "@小粉宝宝",
+        "#"
+    ],
+    "group_name_white_list": [
+        "ALL_GROUP"
+    ],
+    "image_recognition": true,
+    "model": "gpt-4o-mini",
+    "open_ai_api_base": "https://admin.xiaoyibao.com.cn/api/v1",
+    "open_ai_api_key": "openapi-kxhJtFDDlEnMhbHlLPl3IF6Wl1tQyjC6Wi3k9wt5TUblPYPp5jgTj2R",
+    "single_chat_prefix": [
+        "xfb",
+        ""
+    ],
+    "single_chat_reply_prefix": "xfb",
+    "speech_recognition": true,
+    "text_to_voice": "",
+    "voice_reply_voice": true,
+    "voice_to_text": ""
+}
