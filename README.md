@@ -7,6 +7,8 @@
 
 Dify接入微信生态的**详细教程**请查看文章 [**手摸手教你把 Dify 接入微信生态**](https://docs.dify.ai/v/zh-hans/learn-more/use-cases/dify-on-wechat)
 
+[**DoW框架整体的设计思路**](https://fdslk.github.io/tech/python/llm-agent/2025/03/08/dify-on-wechat-based-on-gewechat-understanding/)
+
 如果我的项目对您有帮助请点一个star吧~
 </div>
 
@@ -327,6 +329,17 @@ dify图片识别配置如下，另外需要在dify应用中开启图片上传与
   "dify_api_key": "app-xxx",
   "dify_app_type": "chatbot",
   "image_recognition": true
+}
+```
+
+## 10. 支持deepseek
+
+deepseek和openai可以共用一套api lib，，默认model是`deepseek-chat`
+```json
+{
+  "model": "deepseek-chat",  // 或其他Deepseek模型，如"deepseek-chat-v2"
+  "open_ai_api_key": "您的Deepseek API密钥",
+  "open_ai_api_base": "https://api.deepseek.com/v1"
 }
 ```
 
