@@ -86,8 +86,7 @@ class ChatChannel(Channel):
             else:
                 context["session_id"] = cmsg.other_user_id
                 context["receiver"] = cmsg.other_user_id
-            e_context = PluginManager().emit_event(
-                EventContext(Event.ON_RECEIVE_MESSAGE, {"channel": self, "context": context}))
+            e_context = PluginManager().emit_event(EventContext(Event.ON_RECEIVE_MESSAGE, {"channel": self, "context": context}))
             context = e_context["context"]
             if e_context.is_pass() or context is None:
                 return context
@@ -144,6 +143,9 @@ class ChatChannel(Channel):
                 match_prefix = check_prefix(content, conf().get("single_chat_prefix", [""]))
                 if match_prefix is not None:  # 判断如果匹配到自定义前缀，则返回过滤掉前缀+空格后的内容
                     content = content.replace(match_prefix, "", 1).strip()
+                elif self.channel_type == 'wechatcom_app':
+                    # todo:企业微信自建应用不需要前导字符
+                    pass
                 elif context["origin_ctype"] == ContextType.VOICE:  # 如果源消息是私聊的语音消息，允许不匹配前缀，放宽条件
                     pass
                 else:
@@ -259,7 +261,7 @@ class ChatChannel(Channel):
                         reply = super().build_text_to_voice(reply.content)
                         return self._decorate_reply(context, reply)
                     if context.get("isgroup", False):
-                        if not context.get("no_need_at", False):
+                        if not conf().get("no_need_at", False):
                             reply_text = "@" + context["msg"].actual_user_nickname + "\n" + reply_text.strip()
                         reply_text = conf().get("group_chat_reply_prefix", "") + reply_text + conf().get(
                             "group_chat_reply_suffix", "")

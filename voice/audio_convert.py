@@ -9,7 +9,10 @@ try:
 except ImportError:
     logger.debug("import pysilk failed, wechaty voice message will not be supported.")
 
-from pydub import AudioSegment
+try:
+    from pydub import AudioSegment
+except ImportError:
+    logger.warning("import pydub failed, wechat voice conversion will not be supported. Try: pip install pydub")
 
 try:
     import pilk
@@ -165,7 +168,7 @@ def any_to_amr(any_path, amr_path):
     audio.export(amr_path, format="amr")
     return audio.duration_seconds * 1000
 
-
+# TODO: 删除pysilk，改用pilk
 def sil_to_wav(silk_path, wav_path, rate: int = 24000):
     """
     silk 文件转 wav
