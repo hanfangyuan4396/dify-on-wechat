@@ -15,8 +15,10 @@ from config import conf, save_config
 from lib.gewechat import GewechatClient
 from voice.audio_convert import mp3_to_silk
 import uuid
+import cv2
 
 MAX_UTF8_LEN = 2048
+
 
 @singleton
 class GeWeChatChannel(ChatChannel):
@@ -54,7 +56,8 @@ class GeWeChatChannel(ChatChannel):
         if not self.download_url:
             logger.warning("[gewechat] download_url is not set, unable to download image")
 
-        logger.info(f"[gewechat] init: base_url: {self.base_url}, token: {self.token}, app_id: {self.app_id}, download_url: {self.download_url}")
+        logger.info(
+            f"[gewechat] init: base_url: {self.base_url}, token: {self.token}, app_id: {self.app_id}, download_url: {self.download_url}")
 
     def startup(self):
         # 如果app_id为空或登录后获取到新的app_id，保存配置
@@ -104,6 +107,34 @@ class GeWeChatChannel(ChatChannel):
         app = web.application(urls, globals(), autoreload=False)
         web.httpserver.runsimple(app.wsgifunc(), ("0.0.0.0", port))
 
+    def get_video_info(self, video_path):
+        # 打开视频文件
+        cap = cv2.VideoCapture(video_path)
+
+        if not cap.isOpened():
+            logger.error("无法打开视频文件")
+            return None, None
+
+        # 获取视频的帧率
+        fps = cap.get(cv2.CAP_PROP_FPS)
+
+        # 获取视频的总帧数
+        total_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
+
+        # 计算视频时长（秒）
+        duration = total_frames / fps
+
+        # 读取第一帧
+        ret, first_frame = cap.read()
+        if not ret:
+            logger.error("无法读取视频帧")
+            return None, None
+
+        # 释放视频对象
+        cap.release()
+
+        return first_frame, duration
+
     def send(self, reply: Reply, context: Context):
         receiver = context["receiver"]
         gewechat_message = context.get("msg")
@@ -124,7 +155,8 @@ class GeWeChatChannel(ChatChannel):
                     callback_url = conf().get("gewechat_callback_url")
                     silk_url = callback_url + "?file=" + silk_path
                     self.client.post_voice(self.app_id, receiver, silk_url, duration)
-                    logger.info(f"[gewechat] Do send voice to {receiver}: {silk_url}, duration: {duration/1000.0} seconds")
+                    logger.info(
+                        f"[gewechat] Do send voice to {receiver}: {silk_url}, duration: {duration / 1000.0} seconds")
                     return
                 else:
                     logger.error(f"[gewechat] voice file is not mp3, path: {content}, only support mp3")
@@ -178,6 +210,30 @@ class GeWeChatChannel(ChatChannel):
                 new_img_file_path = TmpDir().path() + str(newMsgId) + extension
                 os.rename(img_file_path, new_img_file_path)
                 logger.info("[gewechat] sendImage rename to {}".format(new_img_file_path))
+        elif reply.type == ReplyType.VIDEO_URL:
+            logger.info('发送视频中---')
+            video_url = reply.content
+            first_frame, duration = self.get_video_info(video_url)
+
+            if first_frame is not None and duration is not None:
+                logger.info(f"视频时长: {duration} 秒")
+
+                # 保存第一帧图片
+                output_image_path = "first_frame.jpg"
+                tmp_dir = TmpDir().path()
+                img_path = os.path.join(tmp_dir, output_image_path)
+
+                cv2.imwrite(img_path, first_frame)
+                logger.debug(f"第一帧图片已保存到: {img_path}")
+                callback_url = conf().get("gewechat_callback_url")
+                img_url = callback_url + "?file=" + img_path
+                res = self.client.post_video(self.app_id, receiver, video_url, img_url, int(duration))
+                logger.info('发送视频成功---')
+                logger.debug(f"视频发送响应: {res}")
+                logger.info("[gewechat] sendVideo url={}, receiver={}".format(video_url, receiver))
+            else:
+                logger.error("无法获取视频信息")
+
 
 class Query:
     def GET(self):
@@ -191,7 +247,8 @@ class Query:
             tmp_dir = os.path.abspath("tmp")
             # 检查文件路径是否在tmp目录下
             if not clean_path.startswith(tmp_dir):
-                logger.error(f"[gewechat] Forbidden access to file outside tmp directory: file_path={file_path}, clean_path={clean_path}, tmp_dir={tmp_dir}")
+                logger.error(
+                    f"[gewechat] Forbidden access to file outside tmp directory: file_path={file_path}, clean_path={clean_path}, tmp_dir={tmp_dir}")
                 raise web.forbidden()
 
             if os.path.exists(clean_path):
@@ -207,14 +264,14 @@ class Query:
         web_data = web.data()
         logger.debug("[gewechat] receive data: {}".format(web_data))
         data = json.loads(web_data)
-        
+
         # gewechat服务发送的回调测试消息
         if isinstance(data, dict) and 'testMsg' in data and 'token' in data:
             logger.debug(f"[gewechat] 收到gewechat服务发送的回调测试消息")
             return "success"
 
         gewechat_msg = GeWeChatMessage(data, channel.client)
-        
+
         # 微信客户端的状态同步消息
         if gewechat_msg.ctype == ContextType.STATUS_SYNC:
             logger.debug(f"[gewechat] ignore status sync message: {gewechat_msg.content}")
@@ -227,12 +284,14 @@ class Query:
 
         # 忽略来自自己的消息
         if gewechat_msg.my_msg:
-            logger.debug(f"[gewechat] ignore message from myself: {gewechat_msg.actual_user_id}: {gewechat_msg.content}")
+            logger.debug(
+                f"[gewechat] ignore message from myself: {gewechat_msg.actual_user_id}: {gewechat_msg.content}")
             return "success"
 
         # 忽略过期的消息
-        if int(gewechat_msg.create_time) < int(time.time()) - 60 * 5: # 跳过5分钟前的历史消息
-            logger.debug(f"[gewechat] ignore expired message from {gewechat_msg.actual_user_id}: {gewechat_msg.content}")
+        if int(gewechat_msg.create_time) < int(time.time()) - 60 * 5:  # 跳过5分钟前的历史消息
+            logger.debug(
+                f"[gewechat] ignore expired message from {gewechat_msg.actual_user_id}: {gewechat_msg.content}")
             return "success"
 
         context = channel._compose_context(
