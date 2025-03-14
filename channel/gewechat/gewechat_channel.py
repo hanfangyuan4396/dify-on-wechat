@@ -225,6 +225,11 @@ class Query:
             logger.debug(f"[gewechat] ignore non-user message from {gewechat_msg.from_user_id}: {gewechat_msg.content}")
             return "success"
 
+        # 判断是否需要忽略语音消息
+        if gewechat_msg.ctype == ContextType.VOICE:
+            if conf().get("speech_recognition") != True:
+                return "success"
+
         # 忽略来自自己的消息
         if gewechat_msg.my_msg:
             logger.debug(f"[gewechat] ignore message from myself: {gewechat_msg.actual_user_id}: {gewechat_msg.content}")

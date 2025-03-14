@@ -118,7 +118,7 @@ class Query:
                         return "success"
                     else:  # request_cnt == 3:
                         # return timeout message
-                        reply_text = "【正在思考中，回复任意文字尝试获取回复】"
+                        reply_text = "我正在思考，请稍等一会儿，回复“继续”获取结果"
                         replyPost = create_reply(reply_text, msg)
                         return encrypt_func(replyPost.render())
 
