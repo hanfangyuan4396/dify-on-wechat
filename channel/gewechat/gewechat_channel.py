@@ -2,6 +2,7 @@ import os
 import time
 import json
 import web
+import re
 from urllib.parse import urlparse
 
 from bridge.context import Context, ContextType
@@ -109,9 +110,22 @@ class GeWeChatChannel(ChatChannel):
         gewechat_message = context.get("msg")
         if reply.type in [ReplyType.TEXT, ReplyType.ERROR, ReplyType.INFO]:
             reply_text = reply.content
-            ats = ""
-            if gewechat_message and gewechat_message.is_group:
-                ats = gewechat_message.actual_user_id
+            ats = []
+            if gewechat_message and gewechat_message.is_group and not conf().get("no_need_at", False):
+                ats.append(gewechat_message.actual_user_id)
+
+            pattern = r'@([^@]+)@([^@\s]+)\s'
+            matches = re.findall(pattern, reply_text)
+        
+            # 处理匹配到的内容
+            for match in matches:
+                nick_name, user_id = match
+                # 移除文本中的userid部分，仅保留@用户名
+                reply_text = reply_text.replace(f"@{nick_name}@{user_id} ", f"@{nick_name} ")
+            
+                ats.append(user_id)
+            ats = ",".join(ats)
+            logger.info(f"[gewechat] {ats}")
             self.client.post_text(self.app_id, receiver, reply_text, ats)
             logger.info("[gewechat] Do send text to {}: {}".format(receiver, reply_text))
         elif reply.type == ReplyType.VOICE:
