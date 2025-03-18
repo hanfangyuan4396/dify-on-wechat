@@ -173,8 +173,46 @@ def parse_markdown_text(text: str) -> List[Dict]:
         result.append({"type": "text", "content": current_text})
     return result
 
-def remove_markdown_symbol(text: str):
-    # 移除markdown格式，目前先移除**
+def remove_markdown_symbol(text: str) -> str:
+    """
+    移除markdown格式符号，包括：
+    1. 标题符号 (#)
+    2. 列表符号 (-)
+    3. 加粗和斜体符号 (*)
+    
+    Args:
+        text (str): 包含markdown格式的文本
+        
+    Returns:
+        str: 移除markdown格式后的纯文本
+        
+    Examples:
+        >>> remove_markdown_symbol("# 标题")
+        "标题"
+        >>> remove_markdown_symbol("- 列表项")
+        "列表项"
+        >>> remove_markdown_symbol("**加粗文本**")
+        "加粗文本"
+    """
     if not text:
         return text
-    return re.sub(r'\*\*(.*?)\*\*', r'\1', text)
+    
+    # 按行处理文本
+    lines = text.split('\n')
+    processed_lines = []
+    
+    for line in lines:
+        # 移除标题符号 (#)，确保#后面跟着空格
+        line = re.sub(r'^#+\s+', '', line)
+        
+        # 移除列表符号 (-)，确保-后面跟着空格
+        line = re.sub(r'^\s*-\s+', '', line)
+        
+        # 移除加粗和斜体符号 (*和**)
+        line = re.sub(r'\*\*(.*?)\*\*', r'\1', line)  # 移除加粗
+        line = re.sub(r'\*(.*?)\*', r'\1', line)      # 移除斜体
+        
+        processed_lines.append(line.strip())
+    
+    # 重新组合文本
+    return '\n'.join(processed_lines).strip()
