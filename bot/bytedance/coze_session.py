@@ -55,9 +55,10 @@ class CozeSession(object):
         if conf().get("coze_conversation_max_messages", 5) <= 0:
             # 当设置的最大消息数小于等于0，则不限制
             return
-        if self.__user_message_counter >= conf().get("coze_conversation_max_messages", 5):
+        # 由于coze策略 list_message 会返回知识库等消息,因此需要拓展默认的最大消息数
+        if self.__user_message_counter >= conf().get("coze_conversation_max_messages", 20):
             self.__user_message_counter = 0
-            # FIXME: coze目前不支持设置历史消息长度，暂时使用超过5条清空会话的策略，缺点是没有滑动窗口，会突然丢失历史消息
+            # FIXME: coze目前不支持设置历史消息长度，暂时使用超过20条清空会话的策略，缺点是没有滑动窗口，会突然丢失历史消息
             self.__conversation_id = ''
 
         self.__user_message_counter += 1
