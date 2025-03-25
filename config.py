@@ -112,6 +112,7 @@ available_setting = {
     "coze_api_key": "xxx",
     "coze_bot_id": "xxx",
     "coze_return_show_img": "false",
+    "coze_conversation_max_messages" : 20, # coze目前不支持设置历史消息长度，暂时使用超过最大消息数清空会话的策略，缺点是没有滑动窗口，会突然丢失历史消息
     # wework的通用配置
     "wework_smart": True,  # 配置wework是否使用已登录的企业微信，False为多开
     # 语音设置
