@@ -229,6 +229,7 @@ class ByteDanceCozeBot(Bot):
         if err is not None:
             logger.error("[COZE] reply error={}".format(err))
             return Reply(ReplyType.ERROR, "我暂时遇到了一些问题，请您稍后重试~")
+        session.add_reply(answer)
         logger.debug(
             "[COZE] new_query={}, session_id={}, reply_cont={}, completion_tokens={}".format(
                 session.messages,
