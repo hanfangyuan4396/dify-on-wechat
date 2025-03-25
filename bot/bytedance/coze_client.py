@@ -29,6 +29,9 @@ class CozeClient(object):
             conversation_id=conversation_id,
             additional_messages=additional_messages
         )
+        # ChatPoll 在类型chat里面存储了conversation_id 参考:cozepy.Chat (init.py line 255 )
+        chat_info = chat_poll.chat
+        session.set_conversation_id(chat_info.conversation_id)
         message_list = chat_poll.messages
         for message in message_list:
             logging.debug('got message:', message.content)
