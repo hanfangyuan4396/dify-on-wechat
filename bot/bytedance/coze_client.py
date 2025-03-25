@@ -26,7 +26,13 @@ class CozeClient(object):
         if session.get_conversation_id() is not None:
             conversation_id = session.get_conversation_id()
             # 如果session信息没有超出上限，加入至额外信息
-            additional_messages = session.messages + additional_messages
+            for message in session.messages:
+                additional_messages.insert(
+                    0,
+                    Message.build_assistant_answer(message["content"])
+                    if message.get("role") == "assistant"
+                    else Message.build_user_question_text(message["content"]),
+                )
 
         chat_poll = self.coze.chat.create_and_poll(
             bot_id=bot_id,
