@@ -34,6 +34,7 @@ available_setting = {
     "single_chat_reply_suffix": "",  # 私聊时自动回复的后缀，\n 可以换行
     "accept_friend_commands": ["加好友"],  # 自动接受好友请求的申请信息
     "group_chat_prefix": ["@bot"],  # 群聊时包含该前缀则会触发机器人回复
+    "group_chat_suffix": [""],
     "no_need_at": False,  # 群聊回复时是否不需要艾特
     "group_chat_reply_prefix": "",  # 群聊时自动回复的前缀
     "group_chat_reply_suffix": "",  # 群聊时自动回复的后缀，\n 可以换行
@@ -41,6 +42,7 @@ available_setting = {
     "group_at_off": False,  # 是否关闭群聊时@bot的触发
     "group_name_white_list": ["ChatGPT测试群", "ChatGPT测试群2"],  # 开启自动回复的群名称列表
     "group_name_keyword_white_list": [],  # 开启自动回复的群名称关键词列表
+    "group_userid_black_list": [],  # 群聊时需要屏蔽的用户ID列表
     "group_chat_in_one_session": ["ChatGPT测试群"],  # 支持会话上下文共享的群名称
     "nick_name_black_list": [],  # 用户昵称黑名单
     "group_welcome_msg": "",  # 配置新人进群固定欢迎语，不配置则使用随机风格欢迎
