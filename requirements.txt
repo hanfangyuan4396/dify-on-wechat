@@ -8,4 +8,4 @@ Pillow
 pre-commit
 web.py-update
 linkai>=0.0.6.0
-cozepy==0.6
+cozepy==0.13
