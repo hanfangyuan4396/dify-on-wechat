@@ -1,0 +1,19 @@
+version: '3'
+
+networks:
+  network-xiaoyanbao:
+    external: true
+    name: network-xiaoyanbao
+
+services:
+  gewe03:
+    container_name: gewe-xiaoyanbao
+    image: gewe
+    restart: always
+    networks:
+      - network-xiaoyanbao
+    ports:
+      - "32531:2531"  # 映射企业微信API服务端口
+      - "32532:2532"  # 映射企业微信下载服务端口
+    volumes:
+      - ./tmp:/var/www/html  # 挂载临时文件目录
