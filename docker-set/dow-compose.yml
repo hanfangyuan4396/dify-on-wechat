@@ -1,0 +1,31 @@
+version: '3'
+
+networks:
+  network-xiaoyanbao:
+    external: true
+
+services:
+  dow03:
+    container_name: dow-xiaoyanbao
+    image: registry.cn-hangzhou.aliyuncs.com/hanfangyuan/dify-on-wechat:latest
+    restart: always
+    networks:
+      - network-xiaoyanbao
+    ports:
+      - "39919:9919"  # 映射回调服务端口
+    environment:
+      TZ: 'Asia/Shanghai'  # 设置时区
+    volumes:
+      - ./config.json:/app/config.json  # 挂载配置文件
+      - ./tmp:/app/tmp  # 挂载临时文件目录
+      - ./run.log:/app/run.log
+      - ./plugins/hello:/app/plugins/hello
+      - ./plugins/lcard:/app/plugins/lcard
+      - ./channel/chat_channel.py:/app/channel/chat_channel.py
+      - ./channel/channel_factory.py:/app/channel/channel_factory.py
+      - ./channel/channel.py:/app/channel/channel.py
+      - ./channel/chat_message.py:/app/channel/chat_message.py
+      - ./channel/gewechat/gewechat_channel.py:/app/channel/gewechat/gewechat_channel.py
+      - ./channel/gewechat/gewechat_message.py:/app/channel/gewechat/gewechat_message.py
+      - ./bridge:/app/bridge
+      - ./config.py:/app/config.py
