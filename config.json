@@ -2,21 +2,20 @@
     "channel_type": "gewechat",
     "character_desc": "你是小妍宝，是复肿外科x小x宝社区的一员，服务乳腺癌患者，提供乳房重建和乳腺癌治疗的AI智能助手，7x24小时专业陪伴，温暖呵护。",
     "gemini_api_key": "AIzaSyAICGyDd3duwexNcyfWSvFZiws5-b1L3Zg",
-    "gewechat_app_id": "wx_6nWriq9zE1CRsisEHPtwn",
-    "gewechat_base_url": "http://192.168.1.159:2531/v2/api",
-    "gewechat_callback_url": "http://host.docker.internal:9919/v2/api/callback/collect",
-    "gewechat_download_url": "http://192.168.1.159:2532/download",
-    "gewechat_token": "e6b19054f8b647918e0bf20c1cf10f9e",
+    "gewechat_app_id": "wx_GiCeJ1XurDWLGgiRx1Gto",
+    "gewechat_base_url": "http://localhost:3531/v2/api",
+    "gewechat_callback_url": "http://192.168.1.159:9919/v2/api/callback/collect",
+    "gewechat_download_url": "http://localhost:3532/download",
+    "gewechat_token": "3f9a0c7959654bb19f403ff0ce90b453",
     "group_chat_in_one_session": [
         "小妍宝-复肿乳腺公益助手推动小组"
     ],
     "group_chat_prefix": [
-        "xfb",
+        "xyb",
         "bb",
-        "BB",
-        "@xfb",
-        "@小粉宝宝",
-        "#"
+        "xiaoyanbao",
+        "@xyb",
+        "@小妍宝宝"
     ],
     "group_name_white_list": [
         "ALL_GROUP"
@@ -26,8 +25,9 @@
     "open_ai_api_base": "https://admin.xiaoyibao.com.cn/api/v1",
     "open_ai_api_key": "openapi-gEZtcDlVLMYHkzc90hml3d9eJZASIAUMLYBdAZgDnNUSzg7BUlODWZ78",
     "single_chat_prefix": [
-        "xfb",
-        ""
+        "xyb",
+        "bb",
+        "@小妍宝",""
     ],
     "single_chat_reply_prefix": "[小妍宝] ",
     "speech_recognition": true,
