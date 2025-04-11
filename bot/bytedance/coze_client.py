@@ -21,14 +21,28 @@ class CozeClient(object):
     def _send_chat(self, bot_id: str,
                    user_id: str, additional_messages: List[Message], session: CozeSession):
         conversation_id = None
+        # 查看目前回话信息是否过多
+        session.count_user_message()
         if session.get_conversation_id() is not None:
             conversation_id = session.get_conversation_id()
+            # 如果session信息没有超出上限，加入至额外信息
+            for message in session.messages:
+                additional_messages.insert(
+                    0,
+                    Message.build_assistant_answer(message["content"])
+                    if message.get("role") == "assistant"
+                    else Message.build_user_question_text(message["content"]),
+                )
+
         chat_poll = self.coze.chat.create_and_poll(
             bot_id=bot_id,
             user_id=user_id,
             conversation_id=conversation_id,
             additional_messages=additional_messages
         )
+        # ChatPoll 在类型chat里面存储了conversation_id 参考:cozepy.Chat (init.py line 255 )
+        chat_info = chat_poll.chat
+        session.set_conversation_id(chat_info.conversation_id)
         message_list = chat_poll.messages
         for message in message_list:
             logging.debug('got message:', message.content)
