@@ -7,11 +7,9 @@
 __pycache__/
 venv*
 *.pyc
-config.json
 QR.png
 nohup.out
 tmp
-plugins.json
 itchat.pkl
 *.log
 user_datas.pkl
@@ -32,7 +30,7 @@ plugins/banwords/lib/__pycache__
 !plugins/keyword
 !plugins/linkai
 !plugins/jina_sum
-!plugins/jina_sum/**/
+!plugins/jina_sum/**/*
 !plugins/custom_dify_app
 !plugins/group_at_autoreply
 client_config.json
