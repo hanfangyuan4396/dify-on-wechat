@@ -1,0 +1,7 @@
+newspaper3k>=0.2.8
+lxml>=4.9.3
+lxml-html-clean>=0.0.2
+requests>=2.28.0
+beautifulsoup4>=4.11.0
+requests-html>=0.10.0
+nest-asyncio>=1.5.5
