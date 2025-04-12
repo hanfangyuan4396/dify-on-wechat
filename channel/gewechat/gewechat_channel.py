@@ -178,6 +178,55 @@ class GeWeChatChannel(ChatChannel):
                 new_img_file_path = TmpDir().path() + str(newMsgId) + extension
                 os.rename(img_file_path, new_img_file_path)
                 logger.info("[gewechat] sendImage rename to {}".format(new_img_file_path))
+        elif reply.type == ReplyType.XML:
+            # XML 类型回复处理
+            xml_content = reply.content
+            
+            # 使用 appmsg.py 中的方法发送卡片消息
+            try:
+                # 确保 XML 内容格式正确
+                # 如果是音乐卡片，将 appid 属性替换为空
+                if "<appmsg appid=\"wx5aa333606550dfd5\"" in xml_content:
+                    xml_content = xml_content.replace("<appmsg appid=\"wx5aa333606550dfd5\"", "<appmsg appid=\"\"")
+                
+                # 使用 requests 库发送卡片消息
+                import requests
+                import json
+                
+                # 构建完整的 URL
+                url = f"{self.base_url}/message/postAppMsg"
+                logger.info(f"[gewechat] Sending appmsg to URL: {url}")
+                
+                # 构建请求数据
+                payload = json.dumps({
+                    "appId": self.app_id,
+                    "toWxid": receiver,
+                    "appmsg": xml_content
+                })
+                
+                # 构建请求头
+                headers = {
+                    'X-GEWE-TOKEN': self.token,
+                    'Content-Type': 'application/json'
+                }
+                
+                # 发送请求
+                response = requests.post(url, headers=headers, data=payload)
+                response_text = response.text
+                
+                logger.info(f"[gewechat] Do send XML as appmsg to {receiver}, response: {response_text}")
+                
+                # 如果发送失败，尝试发送文本消息作为备选
+                response_json = json.loads(response_text)
+                if response_json.get('ret') != 200:
+                    raise Exception(f"Failed to send appmsg: {response_text}")
+                    
+            except Exception as e:
+                logger.error(f"[gewechat] Failed to send XML as appmsg: {e}")
+                
+                # 对于所有类型的 XML，发送通用提示消息
+                self.client.post_text(self.app_id, receiver, "[卡片消息] 您的设备不支持显示此类型的消息", "")
+                logger.info(f"[gewechat] Do send XML as text to {receiver}: [卡片消息]")
 
 class Query:
     def GET(self):

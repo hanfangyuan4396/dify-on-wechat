@@ -1,0 +1,56 @@
+{
+    "plugins": {
+        "Godcmd": {
+            "enabled": true,
+            "priority": 999
+        },
+        "lcard": {
+            "enabled": true,
+            "priority": 900
+        },
+        "Keyword": {
+            "enabled": true,
+            "priority": 900
+        },
+        "Banwords": {
+            "enabled": false,
+            "priority": 100
+        },
+        "linkai": {
+            "enabled": false,
+            "priority": 99
+        },
+        "JinaSum": {
+            "enabled": false,
+            "priority": 10
+        },
+        "tool": {
+            "enabled": false,
+            "priority": 0
+        },
+        "Role": {
+            "enabled": false,
+            "priority": 0
+        },
+        "Dungeon": {
+            "enabled": false,
+            "priority": 0
+        },
+        "CustomDifyApp": {
+            "enabled": true,
+            "priority": 0
+        },
+        "BDunit": {
+            "enabled": false,
+            "priority": 0
+        },
+        "Hello": {
+            "enabled": true,
+            "priority": -1
+        },
+        "Finish": {
+            "enabled": true,
+            "priority": -999
+        }
+    }
+}

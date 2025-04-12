@@ -402,87 +402,83 @@ class GeWeChatMessage(ChatMessage):
             self.ctype = ContextType.STATUS_SYNC
             self.content = self.msg_data.get('Content', {}).get('string', '')
             return
-        elif msg_type == 10002 and self.is_group:  # 群系统消息
-            content = self.msg_data.get('Content', {}).get('string', '')
-            logger.debug(f"[gewechat] detected group system message: {content}")
-            
-            if any(note in content for note in notes_bot_join_group):
-                logger.warn("机器人加入群聊消息，不处理~")
-                self.content = content
-                return
-                
-            if any(note in content for note in notes_join_group):
-                try:
-                    xml_content = content.split(':\n', 1)[1] if ':\n' in content else content
-                    root = ET.fromstring(xml_content)
-                    
-                    sysmsgtemplate = root.find('.//sysmsgtemplate')
-                    if sysmsgtemplate is None:
-                        raise ET.ParseError("No sysmsgtemplate found")
-                        
-                    content_template = sysmsgtemplate.find('.//content_template')
-                    if content_template is None:
-                        raise ET.ParseError("No content_template found")
-                        
-                    content_type = content_template.get('type')
-                    if content_type not in ['tmpl_type_profilewithrevoke', 'tmpl_type_profile']:
-                        raise ET.ParseError(f"Invalid content_template type: {content_type}")
-                    
-                    template = content_template.find('.//template')
-                    if template is None:
-                        raise ET.ParseError("No template element found")
+        elif msg_type == 10002:  # Group System Message
+            if self.is_group:
+                content = self.msg_data.get('Content', {}).get('string', '')
+                logger.debug(f"解析获取消息内容：{content}")
+                if any(note_bot_join_group in content for note_bot_join_group in notes_bot_join_group):  # 邀请机器人加入群聊
+                    logger.warn("机器人加入群聊消息，不处理~")
+                    pass
+                elif any(note_join_group in content for note_join_group in notes_join_group):  # 若有任何在notes_join_group列表中的字符串出现在NOTE中
+                    try:
+                        # Extract the XML part after the chatroom ID
+                        xml_content = content.split(':\n', 1)[1] if ':\n' in content else content
+                        root = ET.fromstring(xml_content)
+                        logger.debug(f"解析除掉wxids的内容体：{xml_content}")
+                        # Navigate through the XML structure
+                        sysmsgtemplate = root.find('.//sysmsgtemplate')
+                        if sysmsgtemplate is not None:
+                            content_template = sysmsgtemplate.find('.//content_template')
+                            if content_template is not None:
+                                template_type = content_template.get('type')
+                                if template_type in {'tmpl_type_profile','tmpl_type_profilewithrevoke','tmpl_type_profilewithrevokeqrcode'}:
+                                    template = content_template.find('.//template')
+                                    if template is not None and ('加入了群聊' in template.text or '加入群聊' in template.text):
+                                        self.ctype = ContextType.JOIN_GROUP
+                                        
+                                        # Extract inviter info
+                                        inviter_link = root.find(".//link[@name='username']//nickname")
+                                        inviter_nickname = inviter_link.text if inviter_link is not None else "未知用户"
 
-                    link_list = content_template.find('.//link_list')
-                    target_nickname = "未知用户"
-                    target_username = None
-                    
-                    if link_list is not None:
-                        # 根据消息类型确定要查找的link name
-                        link_name = 'names' if content_type == 'tmpl_type_profilewithrevoke' else 'kickoutname'
-                        action_link = link_list.find(f".//link[@name='{link_name}']")
-                        
-                        if action_link is not None:
-                            members = action_link.findall('.//member')
-                            nicknames = []
-                            usernames = []
-                            
-                            for member in members:
-                                nickname_elem = member.find('nickname')
-                                username_elem = member.find('username')
-                                nicknames.append(nickname_elem.text if nickname_elem is not None else "未知用户")
-                                usernames.append(username_elem.text if username_elem is not None else None)
-                            
-                            # 处理分隔符（主要针对邀请消息）
-                            separator_elem = action_link.find('separator')
-                            separator = separator_elem.text if separator_elem is not None else '、'
-                            target_nickname = separator.join(nicknames) if nicknames else "未知用户"
-                            
-                            # 取第一个有效username（根据业务需求调整）
-                            target_username = next((u for u in usernames if u), None)
+                                        # Extract invited member info
+                                        invited_link = root.find(".//link[@name='names']//nickname")
+                                        invited_nickname = invited_link.text if invited_link is not None else "未知用户"
+                                        if invited_link is None:
+                                            invited_link = root.find(".//link[@name='adder']//nickname")
+                                            invited_nickname = invited_link.text if invited_link is not None else "未知用户"
 
-                    # 构造最终消息内容
-                    if content_type == 'tmpl_type_profilewithrevoke':
-                        self.content = f'你邀请"{target_nickname}"加入了群聊'
-                        self.ctype = ContextType.JOIN_GROUP
-                    elif content_type == 'tmpl_type_profile':
-                        self.content = f'你将"{target_nickname}"移出了群聊'
-                        self.ctype = ContextType.EXIT_GROUP  # 可根据需要创建新的ContextType
+                                        self.content = f'"{inviter_nickname}"邀请"{invited_nickname}"加入了群聊'
+                                        logger.debug(f"解析加入群聊消息类型{self.content}")
+                                        self.actual_user_nickname = invited_nickname
+                                        # 获取群聊或好友的名称
+                                        brief_info_response = self.client.get_brief_info(self.app_id, [self.other_user_id])
+                                        if brief_info_response['ret'] == 200 and brief_info_response['data']:
+                                            brief_info = brief_info_response['data'][0]
+                                            self.other_user_nickname = brief_info.get('nickName', '')
+                                            # 获取群昵称
+                                            if not self.other_user_nickname:
+                                                self.other_user_nickname = self.other_user_id
+                                        logger.debug(f"解析消息群组名称{self.other_user_nickname}")
+                                        return
 
-                    self.actual_user_nickname = target_nickname
-                    self.actual_user_id = target_username
-                    
-                    logger.debug(f"[gewechat] parsed group system message: {self.content} "
-                                f"type: {content_type} user: {target_nickname} ({target_username})")
-                    
-                except ET.ParseError as e:
-                    logger.error(f"[gewechat] Failed to parse group system message XML: {e}")
-                    self.content = content
-                except Exception as e:
-                    logger.error(f"[gewechat] Unexpected error parsing group system message: {e}")
-                    self.content = content
+                                    else:
+                                        logger.debug(f"加入了群聊不在template中 {template}")
+                                else:
+                                    logger.debug(f"template_type-{template_type} 不在 tmpl_type_profile tmpl_type_profilewithrevoke 中")
+                            else:
+                                logger.debug(f"找不到.//content_template")
+                        else:
+                            logger.debug(f"找不到.//sysmsgtemplate")
+                    except ET.ParseError as e:
+                        logger.error(f"[gewechat] Failed to parse group join XML: {e}")
+                        # Fall back to regular content handling
+                        pass
         elif msg_type == 47:
             self.ctype = ContextType.EMOJI
             self.content = self.msg_data.get('Content', {}).get('string', '')
+        elif msg_type == 10000:  # 系统消息
+            content = self.msg_data.get('Content', {}).get('string', '')
+            if '移出了群聊' in content:
+                self.ctype = ContextType.EXIT_GROUP
+                # 尝试提取被移出群聊的用户昵称
+                match = re.search(r'"(.+?)"', content)
+                if match:
+                    self.actual_user_nickname = match.group(1)
+                self.content = content
+                return
+            else:
+                self.ctype = ContextType.TEXT
+                self.content = content
         else:
             raise NotImplementedError(f"Unsupported message type: Type:{msg_type}")
 
