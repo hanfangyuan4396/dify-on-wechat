@@ -16,6 +16,7 @@ from lib.gewechat import GewechatClient
 from voice.audio_convert import mp3_to_silk
 import uuid
 
+
 MAX_UTF8_LEN = 2048
 
 @singleton
@@ -130,6 +131,30 @@ class GeWeChatChannel(ChatChannel):
                     logger.error(f"[gewechat] voice file is not mp3, path: {content}, only support mp3")
             except Exception as e:
                 logger.error(f"[gewechat] send voice failed: {e}")
+        #增加SearchMusic配套代码133-155
+        elif reply.type == ReplyType.APP:
+            try:
+                logger.info("[gewechat] APP message raw content type: {}, content: {}".format(type(reply.content), reply.content))
+                
+                # 直接使用 XML 内容
+                if not isinstance(reply.content, str):
+                    logger.error(f"[gewechat] send app message failed: content must be XML string, got type={type(reply.content)}")
+                    return
+                
+                if not reply.content.strip():
+                    logger.error("[gewechat] send app message failed: content is empty string")
+                    return
+                
+                # 直接发送 appmsg 内容
+                result = self.client.post_app_msg(self.app_id, receiver, reply.content)
+                logger.info("[gewechat] sendApp, receiver={}, content={}, result={}".format(
+                    receiver, reply.content, result))
+                return result
+                
+            except Exception as e:
+                logger.error(f"[gewechat] send app message failed: {str(e)}")
+                return             
+               
         elif reply.type == ReplyType.IMAGE_URL or reply.type == ReplyType.IMAGE:
             image_storage = reply.content
             if reply.type == ReplyType.IMAGE_URL:

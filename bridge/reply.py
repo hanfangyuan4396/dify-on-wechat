@@ -23,6 +23,7 @@ class ReplyType(Enum):
     CALL_UP = 16  #打电话
     GIF = 17  #动图
     XML = 18 #卡片
+    APP = 19 #APP配合SearchMusic
 
     def __str__(self):
         return self.name

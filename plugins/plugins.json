@@ -48,6 +48,10 @@
             "enabled": true,
             "priority": -1
         },
+        "SearchMusic":{
+            "enabled":true,
+            "priority":-1
+        },
         "Finish": {
             "enabled": true,
             "priority": -999
