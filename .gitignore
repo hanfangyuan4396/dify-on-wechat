@@ -20,6 +20,7 @@ chatgpt_tool_hub/
 plugins/**/
 !plugins/SearchMusic
 plugins/**/config.json
+!plugins/GeminiImg
 !plugins/bdunit
 !plugins/dungeon
 !plugins/finish

@@ -20,6 +20,10 @@
             "enabled": false,
             "priority": 99
         },
+        "GeminiImage": {
+            "enabled": true,
+            "priority": 20
+        },
         "JinaSum": {
             "enabled": false,
             "priority": 10
@@ -44,13 +48,17 @@
             "enabled": false,
             "priority": 0
         },
+        "SearchMusic": {
+            "enabled": true,
+            "priority": -1
+        },
         "Hello": {
             "enabled": true,
             "priority": -1
         },
-        "SearchMusic":{
-            "enabled":true,
-            "priority":-1
+        "GeminiImg": {
+            "enabled": true,
+            "priority": -1
         },
         "Finish": {
             "enabled": true,
