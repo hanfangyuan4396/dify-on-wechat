@@ -65,6 +65,12 @@ class ChatMessage(object):
     def prepare(self):
         if self._prepare_fn and not self._prepared:
             self._prepared = True
+            if self.is_group and self.content:
+                # 检查群聊消息是否是点歌命令
+                content = self.content.strip()
+                # 添加气泡点歌的触发词检测
+                if content.startswith(("酷狗点歌", "网易点歌", "汽水点歌")):
+                    self.ctype = "music_search"
             self._prepare_fn()
 
     def __str__(self):

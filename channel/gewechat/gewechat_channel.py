@@ -58,6 +58,11 @@ class GeWeChatChannel(ChatChannel):
         logger.info(f"[gewechat] init: base_url: {self.base_url}, token: {self.token}, app_id: {self.app_id}, download_url: {self.download_url}")
 
     def startup(self):
+        # 添加配置检查
+        if not self.base_url:
+            logger.error("[gewechat] startup failed: base_url is not set")
+            return
+            
         # 如果app_id为空或登录后获取到新的app_id，保存配置
         app_id, error_msg = self.client.login(self.app_id)
         if error_msg:

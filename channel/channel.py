@@ -35,6 +35,13 @@ class Channel(object):
         raise NotImplementedError
 
     def build_reply_content(self, query, context: Context = None) -> Reply:
+        # 添加命令处理的优先级检查
+        if context and context.get("isgroup", False):
+            # 检查是否是点歌命令
+            if query.startswith("酷狗点歌") or query.startswith("网易点歌"):
+                context["type"] = "music_search"
+                return Bridge().fetch_reply_content(query, context)
+        
         return Bridge().fetch_reply_content(query, context)
 
     def build_voice_to_text(self, voice_file) -> Reply:
