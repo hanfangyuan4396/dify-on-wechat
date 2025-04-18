@@ -155,6 +155,8 @@ docker logs -f gewe-xiaoyanbao
 docker logs -f dow-xyb-test
 ```
 
+参考的yml文件看下docker_compose_samples目录
+
 3. 扫码登录：
 - 在 DOW 服务日志中会显示二维码链接
 - 使用微信扫描二维码进行登录
