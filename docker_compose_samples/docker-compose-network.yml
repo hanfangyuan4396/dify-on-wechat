@@ -1,0 +1,37 @@
+version: '3'
+
+networks:
+  network-xiaoyanbao:
+    external: true
+    name: network-xiaoyanbao
+
+services:
+  gewe03:
+    container_name: gewe-xiaoyanbao
+    image: gewe
+    restart: always
+    networks:
+      - network-xiaoyanbao
+    ports:
+      - "32531:2531"  # 映射企业微信API服务端口
+      - "32532:2532"  # 映射企业微信下载服务端口
+    volumes:
+      - ./tmp:/var/www/html  # 挂载临时文件目录
+
+  dow03:
+    container_name: dow-xiaoyanbao
+    image: registry.cn-hangzhou.aliyuncs.com/hanfangyuan/dify-on-wechat:latest
+    restart: always
+    networks:
+      - network-xiaoyanbao
+    depends_on:
+      - gewe03
+    ports:
+      - "39919:9919"  # 映射回调服务端口
+    environment:
+      TZ: 'Asia/Shanghai'  # 设置时区
+    volumes:
+      - ./config.json:/app/config.json  # 挂载配置文件
+      - ./tmp:/app/tmp  # 挂载临时文件目录
+      - ./run.log:/app/run.log
+      - ./plugins:/app/plugins

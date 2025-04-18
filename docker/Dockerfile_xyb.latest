@@ -4,11 +4,9 @@ LABEL maintainer="sam.qin@xiaoyibao.com.cn"
 ARG TZ='Asia/Shanghai'
 
 ENV BUILD_PREFIX=/app
-
 # 更换为阿里云源
 RUN sed -i 's/deb.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list \
     && sed -i 's/security.debian.org/mirrors.aliyun.com/g' /etc/apt/sources.list
-
 ADD . ${BUILD_PREFIX}
 
 # 安装系统依赖和编译工具
@@ -21,13 +19,14 @@ RUN apt-get update \
         gcc \
         g++ \
         make \
+        nano \
     && cd ${BUILD_PREFIX} \
     && cp config-template.json config.json \
     && /usr/local/bin/python -m pip install --no-cache --upgrade pip \
     && pip install --no-cache -r requirements.txt \
     && pip install --no-cache -r requirements-optional.txt \
     && pip install --no-cache azure-cognitiveservices-speech \
-    # 清理编译工具和缓存
+    # 清理编译工具和缓存，但保留 nano
     && apt-get remove -y gcc g++ make \
     && apt-get autoremove -y \
     && apt-get clean \
