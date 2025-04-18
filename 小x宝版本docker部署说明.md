@@ -1,6 +1,8 @@
 我来完善下 docker-xyb-readme.md 的内容：
 
 ```markdown:/usr/docker-xiaoyanbao/dify-on-wechat/docker-xyb-readme.md
+```
+
 # 小妍宝 Docker 部署指南
 
 ## 一、系统要求
@@ -24,14 +26,18 @@ cd /usr/docker-xiaoyanbao
 # 从阿里云镜像仓库拉取(国内)
 docker pull registry.cn-chengdu.aliyuncs.com/tu1h/wechotd:alpine
 docker tag registry.cn-chengdu.aliyuncs.com/tu1h/wechotd:alpine gewe
+```
 
-# 创建数据目录并启动服务
+#### 创建数据目录并启动服务
+```bash
 mkdir -p gewechat/data  
 docker run -itd -v ./gewechat/data:/root/temp -p 2531:2531 -p 2532:2532 --restart=always --name=gewe gewe
+
 ```
 
 #### 方式二：使用 docker-compose（推荐）
 创建 `gewe-xiaoyanbao.yml` 文件：
+
 ```yaml
 version: '3'
 
@@ -52,11 +58,13 @@ services:
       - "32532:2532"  # 映射微信下载服务端口
     volumes:
       - ./tmp:/var/www/html  # 挂载临时文件目录
+
 ```
 
 ### 3. 配置文件设置
 
 创建 `config.json` 文件：
+
 ```json
 {
     "channel_type": "gewechat",
@@ -97,6 +105,7 @@ services:
 ### 4. 部署 DOW 服务
 
 创建 `dow-xyb-test.yml` 文件：
+
 ```yaml
 version: '3'
 
@@ -215,7 +224,8 @@ docker compose -f dow-xyb-test.yml restart
     - 天气：发送“地名+天气”，获得14天预报，方便出行
     - 外卖：发送“美团外卖”
     - 营养：发送“营养视频”，获得复旦肿瘤医院的专业营养指导视频号内容
+```
 
-后续开发
-[] 临床查询助手的卡片增强
-[] 其它病友实用小程序，如用药助手，就诊问问等卡片增强
+### 后续开发
+- [ ] 临床查询助手的卡片增强
+- [ ] 其它病友实用小程序，如用药助手，就诊问问等卡片增强
