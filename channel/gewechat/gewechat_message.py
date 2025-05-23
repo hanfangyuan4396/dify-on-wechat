@@ -347,13 +347,24 @@ class GeWeChatMessage(ChatMessage):
         elif msg_type == 34:  # Voice message
             self.ctype = ContextType.VOICE
             self.content = self.msg_data.get('Content', {}).get('string', '')
+            silk_file_name = f"voice_{uuid.uuid4()}.silk"
+            silk_file_path = TmpDir().path() + silk_file_name
             if 'ImgBuf' in self.msg_data and 'buffer' in self.msg_data['ImgBuf'] and self.msg_data['ImgBuf']['buffer']:
                 silk_data = base64.b64decode(self.msg_data['ImgBuf']['buffer'])
-                silk_file_name = f"voice_{uuid.uuid4()}.silk"
-                silk_file_path = TmpDir().path() + silk_file_name
                 with open(silk_file_path, "wb") as f:
                     f.write(silk_data)
-                self.content = silk_file_path
+            else:  # 测试语音超过8秒，无法从ImgBuf":{"iLen":0}获取数据，需要从云端下载
+                try:
+                    res = client.download_voice(self.app_id, self.content, self.msg_data.get("MsgId"))
+                    file_url = res.get('data').get('fileUrl')
+                    with requests.get(file_url, headers={'User-Agent': 'Mozilla/5.0'}, stream=True) as r:
+                        r.raise_for_status()
+                        with open(silk_file_path, 'wb') as f:
+                            for chunk in r.iter_content(1024):
+                                if chunk: f.write(chunk)
+                except Exception as e:
+                    logger.error(f"[gewechat] download voice error: {e}")
+            self.content = silk_file_path
         elif msg_type == 3:  # Image message
             self.ctype = ContextType.IMAGE
             self.content = TmpDir().path() + str(self.msg_id) + ".png"
