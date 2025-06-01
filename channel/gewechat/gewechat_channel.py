@@ -109,6 +109,11 @@ class GeWeChatChannel(ChatChannel):
         gewechat_message = context.get("msg")
         if reply.type in [ReplyType.TEXT, ReplyType.ERROR, ReplyType.INFO]:
             reply_text = reply.content
+            
+            # 如果不需要回复
+            if '$NO_REPLY$' in reply_text:
+                return
+                
             ats = ""
             if gewechat_message and gewechat_message.is_group:
                 ats = gewechat_message.actual_user_id
