@@ -1,5 +1,6 @@
 import asyncio
 import time
+import re
 
 import web
 from wechatpy import parse_message
@@ -13,13 +14,14 @@ from channel.wechatmp.wechatmp_message import WeChatMPMessage
 from common.log import logger
 from common.utils import split_string_by_utf8_length
 from config import conf, subscribe_msg
-
-
 # This class is instantiated once per query
+def filter_think_tags(text):
+    # 移除 <think> 标签及其中内容（包括换行）
+        return re.sub(r"\n?\s*<think>.*?</think>\s*\n?", "", text, flags=re.DOTALL)
 class Query:
     def GET(self):
         return verify_server(web.input())
-
+    
     def POST(self):
         try:
             args = web.input()
@@ -138,6 +140,8 @@ class Query:
                     return "success"
 
                 if reply_type == "text":
+                    reply_content = filter_think_tags(reply_content)
+                    print("reply_content", reply_content)
                     if len(reply_content.encode("utf8")) <= MAX_UTF8_LEN:
                         reply_text = reply_content
                     else:
