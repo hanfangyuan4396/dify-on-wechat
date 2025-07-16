@@ -12,6 +12,11 @@ Dify接入微信生态的**详细教程**请查看文章 [**手摸手教你把 D
 如果我的项目对您有帮助请点一个star吧~
 </div>
 
+> [!IMPORTANT]
+>
+> 本项目依赖的itchat与gewechat项目均无法使用，已无法接入微信个人号
+> 
+
 <div align="center">
 <img width="700" src="./docs/images/image1.jpg">
 </div>
