@@ -14,7 +14,7 @@ Dify接入微信生态的**详细教程**请查看文章 [**手摸手教你把 D
 
 > [!IMPORTANT]
 >
-> 本项目依赖的itchat与gewechat项目均无法使用，已无法接入微信个人号
+> **本项目依赖的itchat与gewechat项目均无法使用，已无法接入微信个人号**
 > 
 
 <div align="center">
