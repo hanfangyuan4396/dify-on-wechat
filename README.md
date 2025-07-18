@@ -80,7 +80,7 @@ Dify接入微信生态的**详细教程**请查看文章 [**手摸手教你把 D
 
 |<img width="240" src="./docs/images/wechat_group_1.jpg">|<img width="240" src="./docs/images/wechat_group_2.jpg">|
 |:-:|:-:|
-|<img width="240" src="./docs/images/wechat-delete.jpg">|<img width="240" src="./docs/images/supportme-delete.jpg">|
+|<img width="240" src="./docs/images/wechat.jpg">|<img width="240" src="./docs/images/supportme-delete.jpg">|
 |添加我的微信拉你进交流群|开源不易，感谢打赏🎉|
 
 </div>
