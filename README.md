@@ -1,6 +1,8 @@
 <div align="center">
 <h1>Dify on WeChat</h1>
 
+![star](https://gitcode.com/weixin_44387339/dify-on-wechat/star/badge.svg)
+
 本项目[dify-on-wechat](https://github.com/hanfangyuan4396/dify-on-wechat)为 [chatgpt-on-wechat](https://github.com/zhayujie/chatgpt-on-wechat)下游分支
 
 额外对接了LLMOps平台 [Dify](https://github.com/langgenius/dify)，支持Dify智能助手模型，调用工具和知识库，支持Dify工作流。
