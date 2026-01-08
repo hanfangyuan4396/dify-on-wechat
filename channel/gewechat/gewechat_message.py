@@ -567,7 +567,8 @@ class GeWeChatMessage(ChatMessage):
             # 确保self.content是字符串后进行替换
             self.content = str(self.content)
             self.content = re.sub(f'{self.actual_user_id}:\n', '', self.content)
-            self.content = re.sub(r'@[^\u2005]+\u2005', '', self.content)
+            self.content = re.sub(r'@[^\s]+', '', self.content)  # 移除提及
+            self.content = re.sub(r'\s+', ' ', self.content).strip()  # 移除多余空格并去除首尾空格
         else:
             # 如果不是群聊消息，保持结构统一，也要设置actual_user_id和actual_user_nickname
             self.actual_user_id = self.other_user_id
